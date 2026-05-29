@@ -41,7 +41,11 @@ supabase/*
 supabase/.branches
 supabase/.temp
 
-# MD
+# MD — contexto/design system fica local, não vai pro repo público.
+# Cobre ambos os casos (.md e .MD) — gitignore é case-sensitive no Linux.
 CLAUDE.md
+CLAUDE.MD
 VISION_FINANCE_CONTEXT.md
+VISION_FINANCE_CONTEXT.MD
 ESTILO.md
+ESTILO.MD
