@@ -40,3 +40,8 @@ coverage/
 supabase/*
 supabase/.branches
 supabase/.temp
+
+# MD
+CLAUDE.md
+VISION_FINANCE_CONTEXT.md
+ESTILO.md
