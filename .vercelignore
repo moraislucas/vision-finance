@@ -1,17 +1,13 @@
-# Espelha .gitignore + exclui docs/configs que não precisam virar build artifact.
+# Build artifacts e dependências
 node_modules/
 dist/
 coverage/
 *.tsbuildinfo
+
+# Env
 .env
 .env.local
 .env.*.local
-
-# Documentação não é necessária no servidor
-VISION_FINANCE_CONTEXT.md
-ESTILO.MD
-CLAUDE.md
-supabase/
 
 # Editor
 .vscode/
