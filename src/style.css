@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Tema — ESTILO.MD §2.
+  Variáveis em OKLCH (componentes apenas; o `oklch(var(--x) / <alpha>)` é montado
+  no tailwind.config para habilitar opacidade por classe).
+
+  Para trocar a primary (ESTILO.MD §0), edite SOMENTE estas três linhas no
+  bloco brand abaixo: --primary / --primary-foreground / --ring.
+*/
+@layer base {
+  :root {
+    /* === Base neutra (dark único) === */
+    --background: 0.145 0 0;
+    --foreground: 0.985 0 0;
+
+    --card: 0.185 0 0;
+    --card-foreground: 0.985 0 0;
+
+    --popover: 0.185 0 0;
+    --popover-foreground: 0.985 0 0;
+
+    --secondary: 0.22 0 0;
+    --secondary-foreground: 0.985 0 0;
+
+    --muted: 0.205 0 0;
+    --muted-foreground: 0.66 0.005 270;
+
+    --accent: 0.24 0 0;
+    --accent-foreground: 0.985 0 0;
+
+    --border: 0.255 0 0;
+    --input: 0.255 0 0;
+
+    /* === Brand — Apple System Blue (dark mode) ≈ #0A84FF === */
+    --primary: 0.66 0.21 253;
+    --primary-foreground: 0.985 0 0;
+    --ring: 0.66 0.21 253;
+
+    /* === Semantic — independentes da marca (§0: separar marca de status) === */
+    --success: 0.78 0.18 145;
+    --success-foreground: 0.13 0 0;
+
+    --warning: 0.78 0.16 75;
+    --warning-foreground: 0.13 0 0;
+
+    --destructive: 0.65 0.22 25;
+    --destructive-foreground: 0.985 0 0;
+
+    --info: 0.7 0.16 245;
+    --info-foreground: 0.985 0 0;
+
+    --radius: 1rem;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  * {
+    border-color: oklch(var(--border));
+  }
+
+  html,
+  body,
+  #app {
+    height: 100%;
+  }
+
+  body {
+    background-color: oklch(var(--background));
+    color: oklch(var(--foreground));
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: oklch(var(--primary) / 0.3);
+    color: oklch(var(--foreground));
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: oklch(var(--border));
+    border-radius: 9999px;
+    border: 2px solid oklch(var(--background));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: oklch(0.32 0 0);
+  }
+}
+
+/* Utilitários — ESTILO.MD §7 */
+@layer components {
+  .surface {
+    background-color: oklch(var(--card));
+    border: 1px solid oklch(var(--border));
+    border-radius: 1rem;
+  }
+  .glass {
+    background-color: oklch(var(--background) / 0.6);
+    backdrop-filter: blur(20px);
+    border: 1px solid oklch(var(--border) / 0.6);
+  }
+  .hairline {
+    border-top: 1px solid oklch(var(--border) / 0.6);
+  }
+  .grid-pattern {
+    background-image:
+      linear-gradient(to right, oklch(var(--border) / 0.5) 1px, transparent 1px),
+      linear-gradient(to bottom, oklch(var(--border) / 0.5) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}

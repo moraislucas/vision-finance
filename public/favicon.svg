@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Fundo arredondado em Apple Blue -->
+  <rect width="32" height="32" rx="8" fill="oklch(0.66 0.21 253)" />
+  <!-- Sutil glow interno -->
+  <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" stroke="white" stroke-opacity="0.12" />
+  <!-- Linha de tendência ascendente (chart) -->
+  <path
+    d="M6 22 L11.5 14.5 L16 18 L22.5 9.5"
+    stroke="white"
+    stroke-width="2.4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.95"
+  />
+  <!-- Ponto destacando o topo -->
+  <circle cx="22.5" cy="9.5" r="2" fill="white" />
+  <!-- Pontos secundários menores -->
+  <circle cx="11.5" cy="14.5" r="1.1" fill="white" opacity="0.7" />
+  <circle cx="16" cy="18" r="1.1" fill="white" opacity="0.7" />
+</svg>

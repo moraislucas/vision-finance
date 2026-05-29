@@ -1,0 +1,40 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+dist/
+dist-ssr/
+*.local
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Test coverage
+coverage/
+
+# Env — .env (com creds públicas Supabase) É commitado; só locais e per-mode locais ficam fora.
+.env.local
+.env.*.local
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Supabase
+supabase/.branches
+supabase/.temp
