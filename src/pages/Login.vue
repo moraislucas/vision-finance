@@ -49,7 +49,7 @@ async function onSubmit() {
 <template>
   <!-- Layout/centralização vêm do AuthLayout (flex items-center justify-center +
        min-w-[500px] no md+). Aqui só o espaçamento vertical interno. -->
-  <div class="space-y-8 animate-fade-in-up">
+  <div class="space-y-8 animate-fade-in-up max-w-md mx-auto mt-20 py-12">
     <!-- Cabeçalho: badge beta + título + subtítulo -->
     <div class="text-center space-y-2">
       <div

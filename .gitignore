@@ -29,6 +29,7 @@ dist-ssr/
 coverage/
 
 # Env — .env (com creds públicas Supabase) É commitado; só locais e per-mode locais ficam fora.
+.env
 .env.local
 .env.*.local
 
@@ -36,5 +37,6 @@ coverage/
 *.tsbuildinfo
 
 # Supabase
+supabase/*
 supabase/.branches
 supabase/.temp
