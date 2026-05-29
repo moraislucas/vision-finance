@@ -19,14 +19,46 @@ ECharts (`vue-echarts`) · Day.js (pt-br / America/Sao_Paulo) ·
 ## Setup local
 
 ```bash
+nvm use lts/iron      # Node ≥ 20 (Supabase SDK exige)
 npm install
-npm run dev           # http://localhost:5173
-npm run test:run      # vitest run
+cp .env.example .env  # depois preencha VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY
+npm run dev           # http://localhost:3000
+npm run test:run      # vitest run (48 testes)
 npm run typecheck     # vue-tsc --noEmit
 ```
 
-`.env` traz as credenciais Supabase do projeto (anon key — pública por design;
-RLS é quem protege os dados). Para overrides locais, use `.env.local` (gitignored).
+`.env` é gitignored — cada dev/ambiente preenche o próprio. A anon key
+Supabase é pública por design (RLS protege os dados).
+
+## Deploy na Vercel
+
+`vercel.json` já configurado: framework Vite, build `npm run build`, output `dist`,
+**rewrite SPA** (para o Vue Router não dar 404 ao refresh em rotas internas)
+e cache `immutable` em `/assets/*`.
+
+### Passos no dashboard Vercel
+
+1. **Connect repository** — escolha `moraislucas/vision-finance`.
+2. **Framework Preset** — `Vite` (auto-detecta).
+3. **Environment Variables** — adicione em *Production* (e *Preview* se quiser
+   builds de PR):
+
+   | Nome | Valor |
+   |---|---|
+   | `VITE_SUPABASE_URL` | `https://<seu-projeto>.supabase.co` |
+   | `VITE_SUPABASE_ANON_KEY` | a JWT anon key do painel Supabase |
+
+4. **Deploy**.
+
+### Pós-deploy: liberar o domínio Vercel no Supabase
+
+No painel Supabase → **Authentication → URL Configuration**:
+- **Site URL**: `https://<seu-projeto>.vercel.app` (ou seu domínio custom)
+- **Redirect URLs**: adicione tanto `https://<seu-projeto>.vercel.app/**` quanto
+  `http://localhost:3000/**` para que o link de recuperação de senha redirecione
+  certo em produção e em dev.
+
+Sem isso, o e-mail de "recuperar senha" tenta voltar para `localhost` mesmo em prod.
 
 ## Banco de dados
 
@@ -38,6 +70,10 @@ Aplicar as migrations no SQL Editor do Supabase, em ordem:
 2. `supabase/migrations/0002_bootstrap_helpers.sql` — helpers de bootstrap:
    `seed_default_household()`, trigger em `auth.users` que cria profile
    automaticamente, e `bootstrap_status()`.
+3. `supabase/migrations/0003_emoji_categories.sql` — converte ícones Lucide
+   das categorias padrão em emojis (e atualiza o seed pra novas households).
+4. `supabase/migrations/0004_savings_target.sql` — adiciona a coluna
+   `monthly_savings_target` em `settings` para a margem de poupança automática.
 
 **Bootstrap (sem cadastro público — seção 8):**
 
@@ -93,7 +129,14 @@ Quebrou aí → o produto está errado. Não ajuste a expectativa do teste.
 
 ## Roadmap
 
-Milestones em ordem (seção 17): **1–5 prontos** (setup + migration + auth +
-dataStore + engine + testes). Próximos: contas/categorias/transações UI,
-Dashboard, contas fixas, cofrinhos, cartões, planejamento, score+insights,
-configurações + polish mobile.
+V1 (M1–M13 da seção 17) **concluída**: setup + migration + auth + dataStore
++ engine + testes + Contas/Categorias/Transações + Dashboard + Contas Fixas
++ Cofrinhos + Cartões + Planejamento + Score/Insights + Settings.
+
+Pós-V1 entregue: design system aplicado (Apple Blue / OKLCH / Inter / emojis),
+calendário diário híbrido com visão Calendário + Planilha, margem de poupança
+automática, máscara BRL em inputs de valor.
+
+Próximos passos sugeridos em [`CLAUDE.md`](./CLAUDE.md): supabase type-gen,
+code-splitting do ECharts, realtime via Supabase channels, skeletons em mais
+páginas, drag-to-close no Sheet mobile.
