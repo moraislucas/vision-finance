@@ -19,7 +19,6 @@
  */
 import type { Account, Transaction } from '@/types/domain';
 import {
-  dayjs,
   today as todayHelper,
   safeDateInMonth,
   type Dayjs,
@@ -49,8 +48,53 @@ export interface DailyLedgerRow {
    *  - futuro: dailyBudget projetado.
    */
   discretionary: number;
+  /**
+   * Orçamento diário planejado (linha de base uniforme = `dailyBudget` do mês).
+   * Aplicado a todos os dias para servir de baseline "quanto eu podia gastar/dia".
+   */
+  budget: number;
+  /**
+   * Gasto variável REALIZADO no dia (passado/hoje); 0 no futuro. Diferente de
+   * `discretionary` (que projeta o budget nos dias futuros).
+   */
+  spent: number;
   /** Saldo ao FIM do dia (com toda a projeção aplicada). */
   endBalance: number;
+}
+
+/** Resumo agregado de uma semana (Dom–Sáb) dentro do mês. */
+export interface WeekSummary {
+  /** Índice 0-based da semana dentro do mês (alinhado ao grid do calendário). */
+  index: number;
+  /** Data ISO do primeiro dia da semana que cai no mês. */
+  startDate: string;
+  /** Data ISO do último dia da semana que cai no mês. */
+  endDate: string;
+  /** Linhas diárias desta semana. */
+  days: DailyLedgerRow[];
+  /** Soma dos orçamentos diários da semana. */
+  budget: number;
+  /** Soma do gasto variável realizado na semana (passado/hoje). */
+  spent: number;
+  /** budget − spent (pode ser negativo se estourou o plano). */
+  remaining: number;
+  /** Saldo projetado ao fim do último dia da semana. */
+  endBalance: number;
+  containsToday: boolean;
+  /** Todos os dias já passaram. */
+  isPast: boolean;
+  /** Todos os dias ainda são futuros. */
+  isFuture: boolean;
+  /** Situação relativa ao plano. */
+  status: 'over' | 'on-track' | 'future';
+}
+
+export interface MonthWeeklyProjection {
+  month: string;
+  startingBalance: number;
+  endingBalance: number;
+  dailyBudget: number;
+  weeks: WeekSummary[];
 }
 
 export interface MonthDailyProjection {
@@ -187,6 +231,9 @@ export function getMonthDailyProjection(
       runningBalance + totalInflows - totalOutflows - projectedSpend,
     );
 
+    // Gasto realizado (passado/hoje) — money de fato saído em despesas variáveis.
+    const spent = isFuture ? 0 : varRealized;
+
     rows.push({
       day: d,
       date,
@@ -196,6 +243,8 @@ export function getMonthDailyProjection(
       inflows: round2(totalInflows),
       outflows: round2(totalOutflows),
       discretionary: round2(discretionary),
+      budget: round2(dailyBudget),
+      spent: round2(spent),
       endBalance: runningBalance,
     });
   }
@@ -206,6 +255,68 @@ export function getMonthDailyProjection(
     endingBalance: runningBalance,
     dailyBudget,
     rows,
+  };
+}
+
+/**
+ * Agrega a projeção diária em semanas (Dom–Sáb) alinhadas ao grid do calendário.
+ * Cada semana soma orçamento × gasto realizado, para responder "estou no ritmo
+ * do plano de poupança?". Função pura — só reagrupa a saída diária.
+ */
+export function getMonthWeeklyProjection(
+  data: EngineData,
+  monthRef: Dayjs,
+  paymentCategoryId: string | null = null,
+  todayRef: Dayjs = todayHelper(),
+  options: BudgetOptions = {},
+): MonthWeeklyProjection {
+  const daily = getMonthDailyProjection(data, monthRef, paymentCategoryId, todayRef, options);
+  const firstWeekday = monthRef.startOf('month').day(); // 0=Dom
+
+  const buckets = new Map<number, DailyLedgerRow[]>();
+  for (const row of daily.rows) {
+    const cellIndex = firstWeekday + (row.day - 1);
+    const weekIndex = Math.floor(cellIndex / 7);
+    const arr = buckets.get(weekIndex) ?? [];
+    arr.push(row);
+    buckets.set(weekIndex, arr);
+  }
+
+  const weeks: WeekSummary[] = [...buckets.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([index, days]) => {
+      const budget = round2(days.reduce((s, r) => s + r.budget, 0));
+      const spent = round2(days.reduce((s, r) => s + r.spent, 0));
+      const containsToday = days.some((r) => r.isToday);
+      const isPast = days.every((r) => r.isPast);
+      const isFuture = days.every((r) => r.isFuture);
+      const status: WeekSummary['status'] = isFuture
+        ? 'future'
+        : spent > budget
+          ? 'over'
+          : 'on-track';
+      return {
+        index,
+        startDate: days[0].date,
+        endDate: days[days.length - 1].date,
+        days,
+        budget,
+        spent,
+        remaining: round2(budget - spent),
+        endBalance: days[days.length - 1].endBalance,
+        containsToday,
+        isPast,
+        isFuture,
+        status,
+      };
+    });
+
+  return {
+    month: daily.month,
+    startingBalance: daily.startingBalance,
+    endingBalance: daily.endingBalance,
+    dailyBudget: daily.dailyBudget,
+    weeks,
   };
 }
 
@@ -252,11 +363,6 @@ function computeDailyBudgetFor(
   const days = monthRef.daysInMonth();
   return Math.max(0, round2(monthlyFree / days));
 }
-
-function _silence() {
-  void dayjs;
-}
-void _silence;
 
 /** Re-export pra Tooltips/Tests que precisem da função interna. */
 export { balanceAtDate as _balanceAtDate };

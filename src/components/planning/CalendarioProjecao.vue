@@ -160,6 +160,19 @@ const isCurrentMonth = computed(
     props.monthRef.month() === today().month(),
 );
 void isCurrentMonth;
+
+/**
+ * Versão MUITO curta de R$ para caber em célula 7-col mobile (~48px).
+ * Ex.: 5214 → "5,2k" · 7570 → "7,6k" · -1.5k · 320 → "320".
+ */
+function compactBRL(value: number): string {
+  const sign = value < 0 ? '-' : '';
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1).replace('.', ',')}M`;
+  if (abs >= 1000) return `${sign}${(abs / 1000).toFixed(1).replace('.', ',')}k`;
+  return `${sign}${Math.round(abs)}`;
+}
+
 </script>
 
 <template>
@@ -171,18 +184,19 @@ void isCurrentMonth;
       <div v-for="w in weekdays" :key="w">{{ w }}</div>
     </div>
 
-    <!-- Grid de dias -->
-    <div class="grid grid-cols-7 gap-1.5">
+    <!-- Grid de dias — celulas menores no mobile, mais altas no desktop. -->
+    <div class="grid grid-cols-7 gap-1 md:gap-1.5">
       <div
         v-for="(cell, i) in cells"
         :key="i"
         :class="
           cn(
-            'flex min-h-[88px] flex-col gap-1.5 rounded-xl border p-1.5 text-left text-xs transition-colors',
+            'flex flex-col gap-1 rounded-lg border p-1 text-left text-xs transition-colors md:gap-1.5 md:rounded-xl md:p-1.5',
+            'min-h-[56px] md:min-h-[88px]',
             cell.day === null && 'border-dashed border-border/40 opacity-30',
             cell.day !== null &&
               cell.isToday &&
-              'border-primary bg-primary/[0.06] shadow-primary-glow/30',
+              'border-primary bg-primary/[0.06]',
             cell.day !== null &&
               !cell.isToday &&
               'border-border bg-card hover:border-border/80',
@@ -190,12 +204,12 @@ void isCurrentMonth;
         "
       >
         <template v-if="cell.day !== null">
-          <!-- Header: número do dia + chips de eventos (dots compactos) -->
-          <div class="flex items-center justify-between">
+          <!-- Header: número do dia + dots de eventos -->
+          <div class="flex items-center justify-between gap-0.5">
             <span
               :class="
                 cn(
-                  'inline-grid size-6 place-items-center rounded-md text-[11px] font-semibold tabular-nums',
+                  'inline-grid size-5 md:size-6 place-items-center rounded-md text-[10px] md:text-[11px] font-semibold tabular-nums',
                   cell.isToday
                     ? 'bg-foreground text-background'
                     : cell.isPast
@@ -206,7 +220,7 @@ void isCurrentMonth;
             >
               {{ cell.day }}
             </span>
-            <div v-if="cell.events && cell.events.length" class="flex gap-0.5">
+            <div v-if="cell.events && cell.events.length" class="flex flex-wrap gap-0.5">
               <Tooltip
                 v-for="(e, j) in cell.events.slice(0, 3)"
                 :key="j"
@@ -214,17 +228,14 @@ void isCurrentMonth;
               >
                 <span :class="['size-1.5 rounded-full', eventDot(e.kind)]" />
               </Tooltip>
-              <span
-                v-if="cell.events.length > 3"
-                class="text-[9px] text-muted-foreground"
-              >
-                +{{ cell.events.length - 3 }}
-              </span>
             </div>
           </div>
 
-          <!-- Lista compacta de eventos (apenas md+) -->
-          <ul v-if="cell.events && cell.events.length" class="hidden md:block space-y-0.5">
+          <!-- Chips de evento (só md+, no mobile temos só os dots) -->
+          <ul
+            v-if="cell.events && cell.events.length"
+            class="hidden md:block space-y-0.5"
+          >
             <li
               v-for="(e, j) in cell.events.slice(0, 2)"
               :key="j"
@@ -241,17 +252,20 @@ void isCurrentMonth;
             </li>
           </ul>
 
-          <!-- Saldo do dia (pílula colorida ancorada no rodapé do cell) -->
+          <!-- Saldo do dia (pílula colorida) — no mobile, valor compacto -->
           <div
             v-if="cell.endBalance !== undefined"
             :class="
               cn(
-                'mt-auto rounded-md px-1.5 py-1 text-center text-[10.5px] font-medium tabular-nums',
+                'mt-auto rounded text-center font-medium tabular-nums',
+                'text-[9px] px-1 py-0.5 md:text-[10.5px] md:px-1.5 md:py-1 md:rounded-md',
                 balanceTone(cell.endBalance),
               )
             "
           >
-            {{ formatCurrency(cell.endBalance) }}
+            <!-- Mobile: número curto. Desktop: formatCurrency completo. -->
+            <span class="md:hidden">{{ compactBRL(cell.endBalance) }}</span>
+            <span class="hidden md:inline">{{ formatCurrency(cell.endBalance) }}</span>
           </div>
         </template>
       </div>

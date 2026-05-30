@@ -7,6 +7,7 @@ export const creditCardSchema = z.object({
   due_day: z.coerce.number().int().min(1).max(31),
   active: z.boolean(),
   color: z.string().nullable().optional(),
+  icon: z.string().nullable().optional(),
 });
 export type CreditCardFormValues = z.infer<typeof creditCardSchema>;
 

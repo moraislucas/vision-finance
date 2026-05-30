@@ -16,6 +16,7 @@ interface Slice {
   name: string;
   value: number;
   color: string;
+  icon: string;
 }
 
 const slices = computed<Slice[]>(() => {
@@ -33,6 +34,7 @@ const slices = computed<Slice[]>(() => {
       name: c?.name ?? 'Sem categoria',
       value,
       color: c?.color ?? '#71717A',
+      icon: c?.icon ?? '🏷️',
     });
   }
   return list.sort((a, b) => b.value - a.value);
@@ -74,8 +76,8 @@ const option = computed<EChartsOption>(() => ({
   <div v-if="slices.length === 0" class="flex h-64 flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
     Nenhuma despesa neste mês ainda.
   </div>
-  <div v-else class="relative grid grid-cols-1 items-center gap-4 md:grid-cols-2">
-    <div class="relative h-64">
+  <div v-else class="flex flex-col gap-4">
+    <div class="relative h-56">
       <VChart class="h-full w-full" :option="option" autoresize />
       <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
         <span class="text-[10px] uppercase tracking-wider text-muted-foreground">total</span>
@@ -86,6 +88,7 @@ const option = computed<EChartsOption>(() => ({
       <li v-for="s in slices.slice(0, 6)" :key="s.name" class="flex items-center justify-between gap-3">
         <span class="flex min-w-0 items-center gap-2">
           <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="{ backgroundColor: s.color }" />
+          <span class="shrink-0">{{ s.icon }}</span>
           <span class="truncate">{{ s.name }}</span>
         </span>
         <span class="tabular-nums text-xs text-muted-foreground">{{ formatCurrency(s.value) }}</span>

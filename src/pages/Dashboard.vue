@@ -2,22 +2,31 @@
 /**
  * Dashboard — ESTILO.MD §12 (composição de página).
  *
- * Layout em 4 blocos:
+ * Layout em 3 blocos:
  *  1. Topo: 4 MetricCards (B0 / Disponível / Projetado / Reservado).
- *  2. Hero: Pode Gastar (2/3) + Score (1/3) — alturas casadas via h-full.
- *  3. Meio: Economia + Próximas contas + Donut categorias (3 colunas em lg).
- *  4. Base: Últimas transações + Insights (2 colunas em lg).
+ *  2. Hero: Pode Gastar (2/3, com Economia do mês + Insights embutidos) +
+ *     Distribuição dos gastos (1/3).
+ *  3. Base: Últimas transações + Próximas contas + Score (3 colunas em lg).
  *
  * Tudo deriva de getters da engine — esta página não recalcula nada (princípio 4).
  */
 import { computed, ref } from 'vue';
-import { Wallet, TrendingUp, ChartLine, PiggyBank } from '@lucide/vue';
+import {
+  Wallet,
+  TrendingUp,
+  ChartLine,
+  PiggyBank,
+  AlertTriangle,
+  Sparkles,
+  Info,
+} from '@lucide/vue';
 import { useDataStore } from '@/stores/data';
 import {
   getCurrentBalance,
   getAvailableNow,
   getProjectedMonthEndBalance,
   getReserved,
+  getInsights,
   resolvePaymentCategoryId,
 } from '@/lib/finance';
 
@@ -29,7 +38,6 @@ import EconomiaCard from '@/components/dashboard/EconomiaCard.vue';
 import ProximasContasCard from '@/components/dashboard/ProximasContasCard.vue';
 import UltimasTransacoesCard from '@/components/dashboard/UltimasTransacoesCard.vue';
 import ScoreCard from '@/components/dashboard/ScoreCard.vue';
-import InsightsCard from '@/components/dashboard/InsightsCard.vue';
 import DonutCategorias from '@/components/charts/DonutCategorias.vue';
 import FloatingAddButton from '@/components/layout/FloatingAddButton.vue';
 import TransactionForm from '@/components/transactions/TransactionForm.vue';
@@ -44,21 +52,32 @@ const available = computed(() =>
   getAvailableNow(data.accounts, data.transactions, data.goals),
 );
 const reserved = computed(() => getReserved(data.goals));
+
+const engineData = computed(() => ({
+  accounts: data.accounts,
+  transactions: data.transactions,
+  recurringIncomes: data.recurringIncomes,
+  recurringExpenses: data.recurringExpenses,
+  goals: data.goals,
+  goalContributions: data.goalContributions,
+  creditCards: data.creditCards,
+  creditCardPurchases: data.creditCardPurchases,
+  categories: data.categories,
+}));
+
+// Insights (mesclados no card Pode Gastar). Mostra os 3 mais relevantes.
+const insights = computed(() =>
+  getInsights(engineData.value, resolvePaymentCategoryId(data.categories)).slice(0, 3),
+);
+
+const insightStyle = (s: string) =>
+  s === 'warning'
+    ? { cls: 'border-destructive/30 bg-destructive/10 text-destructive', icon: AlertTriangle }
+    : s === 'positive'
+      ? { cls: 'border-success/30 bg-success/10 text-success', icon: Sparkles }
+      : { cls: 'border-border bg-secondary/30 text-foreground', icon: Info };
 const projected = computed(() =>
-  getProjectedMonthEndBalance(
-    {
-      accounts: data.accounts,
-      transactions: data.transactions,
-      recurringIncomes: data.recurringIncomes,
-      recurringExpenses: data.recurringExpenses,
-      goals: data.goals,
-      goalContributions: data.goalContributions,
-      creditCards: data.creditCards,
-      creditCardPurchases: data.creditCardPurchases,
-      categories: data.categories,
-    },
-    resolvePaymentCategoryId(data.categories),
-  ),
+  getProjectedMonthEndBalance(engineData.value, resolvePaymentCategoryId(data.categories)),
 );
 </script>
 
@@ -72,17 +91,17 @@ const projected = computed(() =>
       </template>
     </PageHeader>
 
-    <!-- 1. 4 MetricCards -->
-    <section class="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-      <KpiCard label="Saldo Atual" :value="B0" :icon="Wallet" />
+    <!-- 1. 4 MetricCards (2x2 no mobile, 4 col no lg) -->
+    <section class="grid grid-cols-2 gap-2.5 md:gap-4 lg:grid-cols-4">
+      <KpiCard label="Saldo" :value="B0" :icon="Wallet" />
       <KpiCard
-        label="Disponível agora"
+        label="Disponível"
         :value="available"
         :icon="TrendingUp"
-        hint="B0 menos o reservado"
+        hint="Saldo menos o reservado em metas"
       />
       <KpiCard
-        label="Projetado fim do mês"
+        label="Fim do mês"
         :value="projected"
         :icon="ChartLine"
         :tone="projected < 0 ? 'negative' : 'positive'"
@@ -92,22 +111,34 @@ const projected = computed(() =>
         :value="reserved"
         :icon="PiggyBank"
         tone="muted"
-        hint="Earmark das metas ativas"
+        hint="Guardado em metas/cofrinhos"
       />
     </section>
 
-    <!-- 2. Hero: Pode Gastar (2/3) + Score (1/3). items-stretch casa as alturas. -->
-    <section class="mt-3 grid gap-3 md:gap-4 lg:grid-cols-3">
+    <!-- 2. Hero: Pode Gastar (2/3, com Economia + Insights) + Score (1/3). -->
+    <section class="mt-3 md:mt-4 grid gap-3 md:gap-4 lg:grid-cols-3">
       <div class="lg:col-span-2">
-        <PodeGastarCard />
+        <PodeGastarCard>
+          <template #extra>
+            <EconomiaCard embedded />
+            <template v-if="insights.length">
+              <p class="mb-2 mt-4 border-t border-border/60 pt-4 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80 font-medium">
+                Insights
+              </p>
+              <ul class="space-y-1.5">
+                <li
+                  v-for="i in insights"
+                  :key="i.id"
+                  :class="['flex items-start gap-2 rounded-xl border p-2.5 text-xs', insightStyle(i.severity).cls]"
+                >
+                  <component :is="insightStyle(i.severity).icon" class="mt-0.5 size-3.5 shrink-0" />
+                  <span>{{ i.message }}</span>
+                </li>
+              </ul>
+            </template>
+          </template>
+        </PodeGastarCard>
       </div>
-      <ScoreCard />
-    </section>
-
-    <!-- 3. Meio: Economia + Próximas contas + Donut -->
-    <section class="mt-3 grid gap-3 md:gap-4 lg:grid-cols-3">
-      <EconomiaCard />
-      <ProximasContasCard />
       <Card padded class="flex flex-col">
         <header class="mb-3">
           <p
@@ -123,10 +154,11 @@ const projected = computed(() =>
       </Card>
     </section>
 
-    <!-- 4. Base: Últimas transações + Insights -->
-    <section class="mt-3 grid gap-3 md:gap-4 lg:grid-cols-2">
+    <!-- 3. Últimas transações + Próximas contas + Score -->
+    <section class="mt-3 md:mt-4 grid gap-3 md:gap-4 lg:grid-cols-3">
       <UltimasTransacoesCard />
-      <InsightsCard />
+      <ProximasContasCard />
+      <ScoreCard />
     </section>
 
     <FloatingAddButton class="md:hidden" @click="sheetOpen = true" />

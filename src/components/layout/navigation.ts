@@ -1,6 +1,9 @@
 /**
  * Fonte única dos itens de navegação — ESTILO.MD §11.
  * Filtre por `mobile`/`desktop` no consumidor (Sidebar vs BottomNav).
+ *
+ * Mobile: apenas 4 itens prioritários aparecem na BottomNav.
+ * Demais ficam acessíveis pelo botão "Mais" (MoreMenuSheet).
  */
 import {
   LayoutDashboard,
@@ -19,15 +22,17 @@ export interface NavItem {
   label: string;
   to: { name: string };
   icon: FunctionalComponent<SVGAttributes>;
+  /** Aparece direto na BottomNav do mobile (4 slots). */
   mobile: boolean;
+  /** Aparece na Sidebar do desktop. */
   desktop: boolean;
-  /** Agrupamento na Sidebar (desktop). */
+  /** Agrupamento na Sidebar e no MoreMenuSheet. */
   section?: 'main' | 'control' | 'strategy' | 'settings';
 }
 
 export const navItems: NavItem[] = [
   {
-    label: 'Dashboard',
+    label: 'Início',
     to: { name: 'dashboard' },
     icon: LayoutDashboard,
     mobile: true,
@@ -42,6 +47,23 @@ export const navItems: NavItem[] = [
     desktop: true,
     section: 'control',
   },
+  {
+    label: 'Planejamento',
+    to: { name: 'planning' },
+    icon: LineChart,
+    mobile: true,
+    desktop: true,
+    section: 'strategy',
+  },
+  {
+    label: 'Cofrinhos',
+    to: { name: 'goals' },
+    icon: PiggyBank,
+    mobile: true,
+    desktop: true,
+    section: 'strategy',
+  },
+  // ↓ os abaixo só na Sidebar desktop e no menu "Mais" mobile.
   {
     label: 'Contas',
     to: { name: 'accounts' },
@@ -75,33 +97,17 @@ export const navItems: NavItem[] = [
     section: 'control',
   },
   {
-    label: 'Planejamento',
-    to: { name: 'planning' },
-    icon: LineChart,
-    mobile: true,
-    desktop: true,
-    section: 'strategy',
-  },
-  {
-    label: 'Cofrinhos',
-    to: { name: 'goals' },
-    icon: PiggyBank,
-    mobile: true,
-    desktop: true,
-    section: 'strategy',
-  },
-  {
     label: 'Ajustes',
     to: { name: 'settings' },
     icon: Settings,
-    mobile: true,
+    mobile: false,
     desktop: true,
     section: 'settings',
   },
 ];
 
 export const sectionTitles: Record<NonNullable<NavItem['section']>, string> = {
-  main: 'Organização',
+  main: 'Visão geral',
   control: 'Controle Financeiro',
   strategy: 'Visão Estratégica',
   settings: 'Configurações',

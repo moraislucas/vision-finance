@@ -12,6 +12,7 @@ import EmptyState from '@/components/ui/EmptyState.vue';
 import SkeletonGrid from '@/components/ui/SkeletonGrid.vue';
 import Button from '@/components/ui/Button.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
+import FloatingAddButton from '@/components/layout/FloatingAddButton.vue';
 import GoalCard from '@/components/goals/GoalCard.vue';
 import GoalForm from '@/components/goals/GoalForm.vue';
 import ContributionForm from '@/components/goals/ContributionForm.vue';
@@ -141,5 +142,7 @@ async function doDelete() {
       destructive
       @confirm="doDelete"
     />
+
+    <FloatingAddButton class="md:hidden" label="Nova meta" @click="openCreate" />
   </section>
 </template>

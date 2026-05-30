@@ -72,7 +72,7 @@ watch(
 const categoryOptions = computed(() =>
   data.categories
     .filter((c) => c.type === form.value.type)
-    .map((c) => ({ value: c.id, label: c.name })),
+    .map((c) => ({ value: c.id, label: `${c.icon ?? '🏷️'} ${c.name}` })),
 );
 const accountOptions = computed(() =>
   data.accounts.map((a) => ({ value: a.id, label: a.name })),

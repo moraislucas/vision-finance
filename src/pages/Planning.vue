@@ -1,13 +1,13 @@
 <script setup lang="ts">
 /**
- * Planejamento:
- *  - Pode Gastar + decomposição da fórmula (mês corrente).
- *  - Projeção 3/6/12 meses com ECharts (negativos em vermelho + alerta).
- *  - Visão mensal HÍBRIDA: Calendário (grid com eventos + saldo por dia) ou
- *    Planilha (tabela vertical Dia/Diário/Saldo). Tab compartilha o mês.
+ * Planejamento — versão mobile-otimizada.
+ *
+ * Mobile: tudo em coluna única, decomposição é Collapsible (recolhe por padrão
+ * pra não empilhar 200px de tabela acima do que importa), Projeção com altura
+ * menor e toggle quebra em duas linhas se necessário.
  */
 import { computed, ref } from 'vue';
-import { AlertTriangle } from '@lucide/vue';
+import { AlertTriangle, ChevronDown } from '@lucide/vue';
 import { useDataStore } from '@/stores/data';
 import {
   getBudgetBreakdown,
@@ -20,6 +20,8 @@ import { dayjs } from '@/lib/helpers/date';
 
 import Card from '@/components/ui/Card.vue';
 import Switch from '@/components/ui/Switch.vue';
+import SegmentedControl from '@/components/ui/SegmentedControl.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import PodeGastarCard from '@/components/dashboard/PodeGastarCard.vue';
 import LinhaProjecao from '@/components/charts/LinhaProjecao.vue';
 import MonthlyView from '@/components/planning/MonthlyView.vue';
@@ -51,6 +53,7 @@ const breakdown = computed(() => {
 type Horizon = 3 | 6 | 12;
 const horizon = ref<Horizon>(6);
 const includeAvgVar = ref(true);
+const breakdownOpen = ref(false); // recolhido por padrão no mobile
 
 const projection = computed<ProjectionPoint[]>(() => {
   const paymentCategoryId = resolvePaymentCategoryId(data.categories);
@@ -96,9 +99,9 @@ const rows = computed(() => {
 });
 
 const horizonOptions: { value: Horizon; label: string }[] = [
-  { value: 3, label: '3 meses' },
-  { value: 6, label: '6 meses' },
-  { value: 12, label: '12 meses' },
+  { value: 3, label: '3m' },
+  { value: 6, label: '6m' },
+  { value: 12, label: '12m' },
 ];
 
 function monthLabel(ym: string): string {
@@ -107,60 +110,72 @@ function monthLabel(ym: string): string {
 </script>
 
 <template>
-  <section class="space-y-6">
-    <header>
-      <p
-        class="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80 font-medium"
-      >
-        Visão futura
-      </p>
-      <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">Planejamento</h1>
-      <p class="mt-1 text-sm text-muted-foreground">
-        Veja quanto pode gastar agora, como será nos próximos meses e o saldo dia a dia.
-      </p>
-    </header>
+  <section class="space-y-4 md:space-y-6">
+    <PageHeader
+      eyebrow="Visão futura"
+      title="Planejamento"
+      description="Pode gastar hoje, projeção mês a mês e saldo dia a dia."
+    />
 
-    <!-- Pode Gastar + decomposição -->
-    <div class="grid gap-4 lg:grid-cols-2 lg:items-stretch">
-      <PodeGastarCard />
+    <!-- Pode Gastar + Decomposição (no mobile: PodeGastar em destaque,
+         decomposição colapsada num details/summary; no desktop: grid 2 cols) -->
+    <div class="grid gap-3 md:gap-4 lg:grid-cols-2 lg:items-stretch">
+      <PodeGastarCard variant="detailed" />
+
       <Card padded>
-        <div class="mb-3">
-          <p
-            class="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80 font-medium"
-          >
-            De onde vem este número
-          </p>
-          <p class="text-sm text-muted-foreground">
-            Saldo livre = (saldo atual − reservado) + receitas previstas − contas a vencer
-            − meta do mês.
-          </p>
-        </div>
-        <table class="w-full text-sm">
+        <button
+          type="button"
+          class="flex w-full items-start justify-between gap-3 text-left lg:cursor-default"
+          :aria-expanded="breakdownOpen"
+          @click="breakdownOpen = !breakdownOpen"
+        >
+          <div>
+            <p
+              class="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80 font-medium"
+            >
+              De onde vem este número
+            </p>
+            <p class="text-sm text-muted-foreground">
+              Toque para ver a conta detalhada.
+            </p>
+          </div>
+          <ChevronDown
+            class="size-4 shrink-0 text-muted-foreground transition-transform lg:hidden"
+            :class="breakdownOpen ? 'rotate-180' : ''"
+          />
+        </button>
+
+        <table
+          class="mt-3 w-full text-sm"
+          :class="breakdownOpen ? 'block' : 'hidden lg:table'"
+        >
           <tbody>
             <tr
               v-for="r in rows"
               :key="r.label"
               class="border-b border-border last:border-0"
             >
-              <td class="py-2.5 text-muted-foreground">{{ r.label }}</td>
+              <td class="py-2 text-xs md:text-sm text-muted-foreground">
+                {{ r.label }}
+              </td>
               <td class="w-4 text-center text-muted-foreground">{{ r.sign }}</td>
-              <td class="py-2.5 text-right tabular-nums">
+              <td class="py-2 text-right tabular-nums text-xs md:text-sm">
                 {{ formatCurrency(r.value) }}
               </td>
             </tr>
             <tr class="border-t border-border">
-              <td class="py-2.5 font-medium">Sobra do mês</td>
+              <td class="py-2 text-sm font-medium">Sobra do mês</td>
               <td></td>
-              <td class="py-2.5 text-right tabular-nums font-semibold">
+              <td class="py-2 text-right tabular-nums text-sm font-semibold">
                 {{ formatCurrency(breakdown.freeBalanceMonth) }}
               </td>
             </tr>
             <tr>
-              <td class="py-1 text-xs text-muted-foreground">
+              <td class="py-1 text-[11px] text-muted-foreground">
                 ÷ {{ breakdown.daysRemaining }} dias restantes
               </td>
               <td></td>
-              <td class="py-1 text-right tabular-nums text-xs text-muted-foreground">
+              <td class="py-1 text-right tabular-nums text-[11px] text-muted-foreground">
                 = {{ formatCurrency(breakdown.dailyBudget) }}/dia
               </td>
             </tr>
@@ -171,52 +186,37 @@ function monthLabel(ym: string): string {
 
     <!-- Projeção 3/6/12 -->
     <Card padded>
-      <header class="mb-3 flex flex-wrap items-end justify-between gap-3">
+      <header
+        class="mb-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-3"
+      >
         <div>
           <p
             class="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80 font-medium"
           >
             Projeção
           </p>
-          <p class="text-sm text-muted-foreground">
-            Saldo simulado mês a mês para você ver o impacto das suas decisões.
+          <p class="text-xs md:text-sm text-muted-foreground">
+            Saldo simulado mês a mês.
           </p>
         </div>
-        <div class="flex items-center gap-3">
-          <div
-            class="inline-flex items-center gap-1 rounded-full bg-secondary/60 p-1 ring-1 ring-border/60"
-          >
-            <button
-              v-for="opt in horizonOptions"
-              :key="opt.value"
-              type="button"
-              :class="[
-                'rounded-full px-3 py-1 text-xs font-medium transition-colors',
-                horizon === opt.value
-                  ? 'bg-card text-foreground shadow-soft'
-                  : 'text-muted-foreground hover:text-foreground',
-              ]"
-              @click="horizon = opt.value"
-            >
-              {{ opt.label }}
-            </button>
-          </div>
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+          <SegmentedControl v-model="horizon" :options="horizonOptions" size="sm" />
           <label
-            class="inline-flex items-center gap-2 text-xs text-muted-foreground select-none"
+            class="inline-flex items-center gap-2 text-[11px] text-muted-foreground select-none"
           >
             <Switch v-model="includeAvgVar" size="sm" />
-            <span>incluir gasto médio</span>
+            <span>com gasto médio</span>
           </label>
         </div>
       </header>
 
       <div
         v-if="firstNegative"
-        class="mb-3 flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+        class="mb-3 flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs md:text-sm text-destructive"
       >
         <AlertTriangle class="mt-0.5 size-4 shrink-0" />
         <p>
-          Atenção: saldo previsto negativo em
+          Saldo previsto negativo em
           <strong class="capitalize">{{ monthLabel(firstNegative.month) }}</strong>
           ({{ formatCurrency(firstNegative.balance) }}).
         </p>

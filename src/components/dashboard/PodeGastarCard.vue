@@ -11,6 +11,11 @@ import { resolvePaymentCategoryId, getBudgetBreakdown } from '@/lib/finance';
 import { formatCurrency } from '@/lib/helpers/format';
 import { TrendingUp, AlertTriangle, PiggyBank } from '@lucide/vue';
 import Card from '@/components/ui/Card.vue';
+import SegmentedControl from '@/components/ui/SegmentedControl.vue';
+
+const props = withDefaults(defineProps<{ variant?: 'compact' | 'detailed' }>(), {
+  variant: 'compact',
+});
 
 const data = useDataStore();
 type Mode = 'day' | 'week' | 'month';
@@ -59,10 +64,12 @@ const footer = computed(() => {
   return `${dr} dia${dr === 1 ? '' : 's'} restante${dr === 1 ? '' : 's'}`;
 });
 
-const tabs: { id: Mode; label: string }[] = [
-  { id: 'day', label: 'Dia' },
-  { id: 'week', label: 'Semana' },
-  { id: 'month', label: 'Mês' },
+const isDetailed = computed(() => props.variant === 'detailed');
+
+const tabs: { value: Mode; label: string }[] = [
+  { value: 'day', label: 'Dia' },
+  { value: 'week', label: 'Semana' },
+  { value: 'month', label: 'Mês' },
 ];
 </script>
 
@@ -79,24 +86,7 @@ const tabs: { id: Mode; label: string }[] = [
         </p>
         <p class="mt-0.5 text-xs text-muted-foreground">{{ subtitle }}</p>
       </div>
-      <div
-        class="inline-flex items-center gap-1 rounded-full bg-secondary/60 p-1 ring-1 ring-border/60"
-      >
-        <button
-          v-for="t in tabs"
-          :key="t.id"
-          type="button"
-          :class="[
-            'rounded-full px-3 py-1 text-[11px] font-medium transition-colors',
-            mode === t.id
-              ? 'bg-primary text-primary-foreground shadow-soft'
-              : 'text-muted-foreground hover:text-foreground',
-          ]"
-          @click="mode = t.id"
-        >
-          {{ t.label }}
-        </button>
-      </div>
+      <SegmentedControl v-model="mode" :options="tabs" size="sm" />
     </div>
 
     <!-- Valor gigante -->
@@ -116,6 +106,35 @@ const tabs: { id: Mode; label: string }[] = [
         Mês apertado: sobra projetada ({{ formatCurrency(breakdown.freeBalanceMonth) }})
         está abaixo da sua margem de poupança ({{ formatCurrency(breakdown.savingsTarget) }}).
         Reduza gastos ou ajuste a margem em Configurações.
+      </p>
+    </div>
+
+    <!-- Destaque de poupança (só na versão detalhada) -->
+    <div
+      v-if="isDetailed && breakdown.savingsApplied > 0 && !breakdown.savingsShortfall"
+      class="mt-3 flex items-center gap-2.5 rounded-xl border border-success/30 bg-success/10 p-3"
+    >
+      <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-success/15 text-success">
+        <PiggyBank class="size-4" />
+      </span>
+      <div>
+        <p class="text-[10px] uppercase tracking-[0.16em] text-success/80 font-medium">
+          Vai poupar este mês
+        </p>
+        <p class="text-lg font-semibold tabular-nums text-success">
+          {{ formatCurrency(breakdown.savingsApplied) }}
+        </p>
+      </div>
+    </div>
+    <div
+      v-else-if="isDetailed && breakdown.savingsTarget === 0"
+      class="mt-3 flex items-start gap-2 rounded-xl border border-border bg-secondary/30 p-3 text-xs text-muted-foreground"
+    >
+      <PiggyBank class="mt-0.5 size-4 shrink-0" />
+      <p>
+        Sem margem de poupança definida. Configure em
+        <strong class="text-foreground">Ajustes</strong> para garantir uma sobra
+        todo mês.
       </p>
     </div>
 
@@ -170,5 +189,10 @@ const tabs: { id: Mode; label: string }[] = [
     </div>
 
     <p class="mt-3 text-[11px] text-muted-foreground">{{ footer }}</p>
+
+    <!-- Slot opcional (Dashboard mescla os Insights aqui pra aproveitar o espaço) -->
+    <div v-if="$slots.extra" class="mt-4 border-t border-border/60 pt-4">
+      <slot name="extra" />
+    </div>
   </Card>
 </template>

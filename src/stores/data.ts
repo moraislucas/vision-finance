@@ -48,6 +48,10 @@ export const useDataStore = defineStore('data', () => {
   const loading = ref(false);
   const loaded = ref(false);
   const lastError = ref<Error | null>(null);
+  const lastLoadedAt = ref(0);
+
+  /** Janela em que um refresh oportunista é considerado redundante. */
+  const REFRESH_THROTTLE_MS = 15_000;
 
   const all = computed<HouseholdData>(() => ({
     accounts: accounts.value,
@@ -121,6 +125,7 @@ export const useDataStore = defineStore('data', () => {
       goalContributions.value = gcs;
       settings.value = st;
       loaded.value = true;
+      lastLoadedAt.value = Date.now();
     } catch (err) {
       lastError.value = err instanceof Error ? err : new Error(String(err));
       throw lastError.value;
@@ -129,8 +134,18 @@ export const useDataStore = defineStore('data', () => {
     }
   }
 
-  /** Alias semântico — futuro hook de realtime do Supabase pode mapear aqui. */
-  async function refresh(): Promise<void> {
+  /**
+   * Refresh oportunista (troca de rota, foco da aba). Silencioso e idempotente:
+   * - não dispara se já há um load em andamento;
+   * - não dispara se carregou há menos de REFRESH_THROTTLE_MS (use `force` p/ ignorar);
+   * - mantém `loaded=true` durante o refetch, então não pisca skeleton.
+   *
+   * Futuro hook de realtime do Supabase pode chamar `upsertById` direto e dispensar isto.
+   */
+  async function refresh(options?: { force?: boolean }): Promise<void> {
+    if (loading.value) return;
+    const fresh = Date.now() - lastLoadedAt.value < REFRESH_THROTTLE_MS;
+    if (!options?.force && loaded.value && fresh) return;
     await loadAll();
   }
 

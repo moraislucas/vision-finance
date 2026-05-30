@@ -17,6 +17,8 @@ import SkeletonGrid from '@/components/ui/SkeletonGrid.vue';
 import Badge from '@/components/ui/Badge.vue';
 import IconButton from '@/components/ui/IconButton.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
+import BankLogo from '@/components/ui/BankLogo.vue';
+import FloatingAddButton from '@/components/layout/FloatingAddButton.vue';
 import AccountForm from '@/components/accounts/AccountForm.vue';
 
 const data = useDataStore();
@@ -86,25 +88,26 @@ const balances = computed(() =>
     <div v-else class="grid gap-3 md:gap-4 md:grid-cols-2 xl:grid-cols-3">
       <Card v-for="row in balances" :key="row.account.id" padded>
         <div class="flex items-start justify-between gap-2">
-          <div class="min-w-0">
-            <div class="flex items-center gap-2">
-              <span
-                class="size-2.5 rounded-full"
-                :style="{ backgroundColor: row.account.color ?? '#0A84FF' }"
-              />
+          <div class="flex min-w-0 items-center gap-3">
+            <BankLogo
+              :slug="row.account.icon"
+              :name="row.account.name"
+              :color="row.account.color"
+            />
+            <div class="min-w-0">
               <h3 class="truncate text-base font-semibold">{{ row.account.name }}</h3>
-            </div>
-            <div class="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-              <Badge>{{ row.account.type === 'bank' ? 'Banco' : 'Dinheiro' }}</Badge>
-              <span class="flex items-center gap-1">
-                <component
-                  :is="row.account.include_in_available ? Eye : EyeOff"
-                  class="size-3"
-                />
-                {{
-                  row.account.include_in_available ? 'conta no total' : 'fora do total'
-                }}
-              </span>
+              <div class="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                <Badge>{{ row.account.type === 'bank' ? 'Banco' : 'Dinheiro' }}</Badge>
+                <span class="flex items-center gap-1">
+                  <component
+                    :is="row.account.include_in_available ? Eye : EyeOff"
+                    class="size-3"
+                  />
+                  {{
+                    row.account.include_in_available ? 'conta no total' : 'fora do total'
+                  }}
+                </span>
+              </div>
             </div>
           </div>
           <div class="flex shrink-0 gap-1">
@@ -145,5 +148,7 @@ const balances = computed(() =>
       destructive
       @confirm="doDelete"
     />
+
+    <FloatingAddButton class="md:hidden" label="Nova conta" @click="openCreate" />
   </section>
 </template>

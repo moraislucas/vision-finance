@@ -13,6 +13,7 @@ import Button from '@/components/ui/Button.vue';
 import Switch from '@/components/ui/Switch.vue';
 import MoneyInput from '@/components/ui/MoneyInput.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
+import QuickShortcutCard from '@/components/settings/QuickShortcutCard.vue';
 
 const data = useDataStore();
 const auth = useAuthStore();
@@ -71,10 +72,13 @@ async function onLogout() {
     />
 
     <div class="space-y-4">
+      <!-- Atalho rápido (iPhone) -->
+      <QuickShortcutCard />
+
       <!-- Margem de poupança automática -->
       <Card padded>
         <header class="mb-3 flex items-start gap-3">
-          <div class="grid size-9 place-items-center rounded-xl bg-success/10 text-success">
+          <div class="grid size-9 shrink-0 place-items-center rounded-xl bg-success/10 text-success">
             <PiggyBank class="size-4" />
           </div>
           <div>

@@ -11,6 +11,8 @@ import Select from '@/components/ui/Select.vue';
 import Switch from '@/components/ui/Switch.vue';
 import ColorPicker from '@/components/ui/ColorPicker.vue';
 import MoneyInput from '@/components/ui/MoneyInput.vue';
+import BankPicker from '@/components/ui/BankPicker.vue';
+import type { BankBrand } from '@/lib/constants/banks';
 
 const props = defineProps<{ editing?: Account | null }>();
 const emit = defineEmits<{ saved: []; cancel: [] }>();
@@ -24,6 +26,7 @@ interface FormState {
   initial_balance: number;
   include_in_available: boolean;
   color: string;
+  icon: string | null;
 }
 
 const form = ref<FormState>({
@@ -32,6 +35,7 @@ const form = ref<FormState>({
   initial_balance: 0,
   include_in_available: true,
   color: '#0A84FF',
+  icon: null,
 });
 const errors = ref<Partial<Record<keyof AccountFormValues, string>>>({});
 
@@ -45,14 +49,24 @@ watch(
         initial_balance: Number(a.initial_balance),
         include_in_available: a.include_in_available,
         color: a.color ?? '#0A84FF',
+        icon: a.icon ?? null,
       };
     } else {
-      form.value = { name: '', type: 'bank', initial_balance: 0, include_in_available: true, color: '#0A84FF' };
+      form.value = { name: '', type: 'bank', initial_balance: 0, include_in_available: true, color: '#0A84FF', icon: null };
     }
     errors.value = {};
   },
   { immediate: true },
 );
+
+/** Ao escolher um banco, sugere o nome e a cor de marca se ainda em branco/default. */
+function onPickBank(bank: BankBrand | null) {
+  if (!bank) return;
+  if (!form.value.name.trim()) form.value.name = bank.label;
+  if (bank.color && (!form.value.color || form.value.color === '#0A84FF')) {
+    form.value.color = bank.color;
+  }
+}
 
 async function onSubmit() {
   const parsed = accountSchema.safeParse({
@@ -61,6 +75,7 @@ async function onSubmit() {
     initial_balance: form.value.initial_balance,
     include_in_available: form.value.include_in_available,
     color: form.value.color || null,
+    icon: form.value.icon,
   });
   if (!parsed.success) {
     errors.value = {};
@@ -74,7 +89,7 @@ async function onSubmit() {
       await store.update(props.editing.id, parsed.data);
       toast.success('Conta atualizada.');
     } else {
-      await store.create({ ...parsed.data, color: parsed.data.color ?? null, icon: null });
+      await store.create({ ...parsed.data, color: parsed.data.color ?? null, icon: parsed.data.icon ?? null });
       toast.success('Conta criada.');
     }
     emit('saved');
@@ -86,6 +101,11 @@ async function onSubmit() {
 
 <template>
   <form class="space-y-4" @submit.prevent="onSubmit">
+    <div class="space-y-2">
+      <Label>Banco</Label>
+      <BankPicker v-model="form.icon" @select="onPickBank" />
+    </div>
+
     <div class="space-y-1.5">
       <Label for="name">Nome</Label>
       <Input id="name" v-model="form.name" placeholder="Ex.: Nubank, Carteira" required />

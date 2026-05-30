@@ -9,6 +9,7 @@ import {
   getCardInvoice,
   getInstallmentAmounts,
   getInstallmentDueDate,
+  purchaseDateForInvoiceMonth,
 } from '@/lib/finance';
 import { makeCreditCard, makePurchase } from './helpers';
 
@@ -120,5 +121,21 @@ describe('cartão de crédito (seção 9.4)', () => {
     // Em 2025-02-06, a primeira parcela (2025-02-05) já venceu → não conta.
     const ref = dayjs.tz('2025-02-06', 'America/Sao_Paulo');
     expect(getCardAvailableLimit(card, [p], ref)).toBe(4800);
+  });
+
+  it('purchaseDateForInvoiceMonth: compra à vista cai na fatura do mês escolhido', () => {
+    // due_day(5) <= closing_day(25) → fatura vence no mês seguinte ao fechamento.
+    const card = makeCreditCard({ id: 'c1', closing_day: 25, due_day: 5 });
+    for (const ym of ['2025-03', '2025-08', '2025-12']) {
+      const date = purchaseDateForInvoiceMonth(card, ym);
+      const p = makePurchase({ credit_card_id: 'c1', purchase_date: date, total_amount: 1200, installments: 1 });
+      expect(getCardInvoice(card, [p], ym).total).toBe(1200);
+    }
+
+    // due_day(20) > closing_day(10) → fatura vence no MESMO mês do fechamento.
+    const card2 = makeCreditCard({ id: 'c2', closing_day: 10, due_day: 20 });
+    const date2 = purchaseDateForInvoiceMonth(card2, '2025-08');
+    const p2 = makePurchase({ credit_card_id: 'c2', purchase_date: date2, total_amount: 999, installments: 1 });
+    expect(getCardInvoice(card2, [p2], '2025-08').total).toBe(999);
   });
 });

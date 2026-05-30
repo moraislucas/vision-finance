@@ -12,7 +12,8 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/services/supabase';
-import type { Profile } from '@/types/domain';
+import * as profileSvc from '@/services/supabase/profile';
+import type { Profile, UUID } from '@/types/domain';
 
 export const useAuthStore = defineStore('auth', () => {
   const session = ref<Session | null>(null);
@@ -86,6 +87,19 @@ export const useAuthStore = defineStore('auth', () => {
     if (error) throw error;
   }
 
+  /** Gera novo quick_token para o profile corrente. Atualiza local. */
+  async function regenerateQuickToken(): Promise<UUID> {
+    const token = await profileSvc.regenerateQuickToken();
+    if (profile.value) profile.value = { ...profile.value, quick_token: token };
+    return token;
+  }
+
+  /** Desativa o atalho do iPhone (limpa token). */
+  async function clearQuickToken(): Promise<void> {
+    await profileSvc.clearQuickToken();
+    if (profile.value) profile.value = { ...profile.value, quick_token: null };
+  }
+
   return {
     session,
     user,
@@ -98,5 +112,7 @@ export const useAuthStore = defineStore('auth', () => {
     signIn,
     signOut,
     recoverPassword,
+    regenerateQuickToken,
+    clearQuickToken,
   };
 });

@@ -3,11 +3,17 @@ import { computed } from 'vue';
 import { useDataStore } from '@/stores/data';
 import { formatCurrency, formatDate } from '@/lib/helpers/format';
 import { RouterLink } from 'vue-router';
-import { ArrowRightLeft, ChevronRight } from '@lucide/vue';
-import Badge from '@/components/ui/Badge.vue';
+import { ArrowRightLeft, ChevronRight, ArrowUpRight, ArrowDownRight } from '@lucide/vue';
 import Card from '@/components/ui/Card.vue';
+import Tooltip from '@/components/ui/Tooltip.vue';
 
 const data = useDataStore();
+
+const categoryById = computed(
+  () => new Map(data.categories.map((c) => [c.id, c])),
+);
+
+const catOf = (id: string | null | undefined) => categoryById.value.get(id ?? '');
 
 const latest = computed(() =>
   [...data.transactions]
@@ -31,23 +37,47 @@ const latest = computed(() =>
       </RouterLink>
     </header>
 
-    <ul v-if="latest.length" class="divide-y divide-border">
-      <li v-for="tx in latest" :key="tx.id" class="flex items-center justify-between gap-3 py-2.5">
-        <div class="min-w-0">
-          <div class="truncate text-sm font-medium">{{ tx.description }}</div>
-          <div class="flex items-center gap-2 text-xs text-muted-foreground">
-            <Badge
-              v-if="data.categories.find((c) => c.id === tx.category_id)"
-              :color="data.categories.find((c) => c.id === tx.category_id)?.color ?? null"
-            >
-              {{ data.categories.find((c) => c.id === tx.category_id)?.name }}
-            </Badge>
-            <span>{{ formatDate(tx.date) }}</span>
-          </div>
+    <ul v-if="latest.length" class="space-y-1">
+      <li
+        v-for="tx in latest"
+        :key="tx.id"
+        class="flex items-center gap-3 rounded-xl px-1.5 py-2 transition-colors hover:bg-secondary/30"
+      >
+        <!-- Ícone de entrada/saída (discreto) -->
+        <div
+          :class="[
+            'grid size-7 shrink-0 place-items-center rounded-full',
+            tx.type === 'income'
+              ? 'bg-success/10 text-success/80'
+              : 'bg-destructive/10 text-destructive/80',
+          ]"
+        >
+          <component
+            :is="tx.type === 'income' ? ArrowUpRight : ArrowDownRight"
+            class="size-3.5"
+          />
         </div>
+
+        <!-- Linha de cima: nome + categoria · Linha de baixo: data -->
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2">
+            <span class="truncate text-sm font-medium">{{ tx.description }}</span>
+            <Tooltip v-if="catOf(tx.category_id)" :text="catOf(tx.category_id)?.name ?? ''">
+              <span
+                class="grid size-6 shrink-0 place-items-center rounded-full text-xs leading-none"
+                :style="{ backgroundColor: `${catOf(tx.category_id)?.color ?? '#71717A'}1A` }"
+              >
+                {{ catOf(tx.category_id)?.icon || '🏷️' }}
+              </span>
+            </Tooltip>
+          </div>
+          <div class="mt-0.5 text-xs text-muted-foreground">{{ formatDate(tx.date) }}</div>
+        </div>
+
+        <!-- Valor (centralizado nas duas linhas, à direita) -->
         <span
           :class="[
-            'tabular-nums text-sm',
+            'shrink-0 tabular-nums text-sm font-medium',
             tx.type === 'income' ? 'text-success' : 'text-destructive',
           ]"
         >

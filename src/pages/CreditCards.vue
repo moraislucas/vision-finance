@@ -12,10 +12,12 @@ import EmptyState from '@/components/ui/EmptyState.vue';
 import SkeletonGrid from '@/components/ui/SkeletonGrid.vue';
 import Button from '@/components/ui/Button.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
+import FloatingAddButton from '@/components/layout/FloatingAddButton.vue';
 import CardSummary from '@/components/credit-cards/CardSummary.vue';
 import CardDetail from '@/components/credit-cards/CardDetail.vue';
 import CreditCardForm from '@/components/credit-cards/CreditCardForm.vue';
 import PurchaseForm from '@/components/credit-cards/PurchaseForm.vue';
+import InvoiceForm from '@/components/credit-cards/InvoiceForm.vue';
 
 const data = useDataStore();
 const store = useCreditCardStore();
@@ -26,6 +28,9 @@ const editingCard = ref<CreditCardModel | null>(null);
 
 const purchaseSheetOpen = ref(false);
 const purchaseCardId = ref<string | null>(null);
+
+const invoiceSheetOpen = ref(false);
+const invoiceCard = ref<CreditCardModel | null>(null);
 
 const detailSheetOpen = ref(false);
 const detailCard = ref<CreditCardModel | null>(null);
@@ -44,6 +49,10 @@ function openEdit(c: CreditCardModel) {
 function openPurchase(c: CreditCardModel) {
   purchaseCardId.value = c.id;
   purchaseSheetOpen.value = true;
+}
+function openInvoice(c: CreditCardModel) {
+  invoiceCard.value = c;
+  invoiceSheetOpen.value = true;
 }
 function openDetail(c: CreditCardModel) {
   detailCard.value = c;
@@ -100,6 +109,7 @@ async function doDelete() {
         @edit="openEdit(card)"
         @remove="askDelete(card)"
         @new-purchase="openPurchase(card)"
+        @new-invoice="openInvoice(card)"
         @open-detail="openDetail(card)"
       />
     </div>
@@ -130,6 +140,19 @@ async function doDelete() {
     </Sheet>
 
     <Sheet
+      :open="invoiceSheetOpen"
+      title="Lançar fatura do mês"
+      @update:open="invoiceSheetOpen = $event"
+    >
+      <InvoiceForm
+        v-if="invoiceCard"
+        :card="invoiceCard"
+        @saved="invoiceSheetOpen = false"
+        @cancel="invoiceSheetOpen = false"
+      />
+    </Sheet>
+
+    <Sheet
       :open="detailSheetOpen"
       :title="detailCard?.name ?? 'Cartão'"
       :size="'lg'"
@@ -150,5 +173,7 @@ async function doDelete() {
       destructive
       @confirm="doDelete"
     />
+
+    <FloatingAddButton class="md:hidden" label="Novo cartão" @click="openCreate" />
   </section>
 </template>

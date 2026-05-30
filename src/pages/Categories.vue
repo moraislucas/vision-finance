@@ -15,6 +15,7 @@ import EmptyState from '@/components/ui/EmptyState.vue';
 import SkeletonList from '@/components/ui/SkeletonList.vue';
 import IconButton from '@/components/ui/IconButton.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
+import FloatingAddButton from '@/components/layout/FloatingAddButton.vue';
 import CategoryForm from '@/components/categories/CategoryForm.vue';
 
 const data = useDataStore();
@@ -143,5 +144,7 @@ const groups = computed(() => [
       destructive
       @confirm="doDelete"
     />
+
+    <FloatingAddButton class="md:hidden" label="Nova categoria" @click="openCreate" />
   </section>
 </template>

@@ -83,6 +83,21 @@ export function getInstallmentDueDate(
   return safeDateInMonth(dueMonth.year(), dueMonth.month(), card.due_day).format('YYYY-MM-DD');
 }
 
+/**
+ * Data de compra que faz uma compra à vista (1 parcela) cair na fatura cujo
+ * VENCIMENTO é no mês `invoiceYM` (YYYY-MM). Útil para "lançar a fatura do mês"
+ * sem o usuário pensar em data/ciclo.
+ *
+ * Raciocínio inverso da regra do ciclo: escolhemos o dia 1 (sempre <= closing_day,
+ * baseShift=0), então closingMonth = mês da compra. Como
+ * dueMonth = closingMonth + dueMonthShift, basta recuar `dueMonthShift` meses.
+ */
+export function purchaseDateForInvoiceMonth(card: CreditCard, invoiceYM: string): string {
+  const dueMonthShift = card.due_day > card.closing_day ? 0 : 1;
+  const purchaseMonth = dayjs(`${invoiceYM}-01`).subtract(dueMonthShift, 'month');
+  return safeDateInMonth(purchaseMonth.year(), purchaseMonth.month(), 1).format('YYYY-MM-DD');
+}
+
 /** Todas as parcelas (k=0..N-1) de uma compra, expandidas em `InvoiceLine`. */
 export function expandPurchase(
   purchase: CreditCardPurchase,

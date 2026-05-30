@@ -168,6 +168,7 @@ export function makeSettings(over: Partial<Settings> = {}): Settings {
     theme: 'dark',
     monthly_budget: null,
     monthly_savings_target: null,
+    default_account_id: null,
     budget_enabled: true,
     created_at: now(),
     ...over,

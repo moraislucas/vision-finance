@@ -10,6 +10,8 @@ import Label from '@/components/ui/Label.vue';
 import Switch from '@/components/ui/Switch.vue';
 import ColorPicker from '@/components/ui/ColorPicker.vue';
 import MoneyInput from '@/components/ui/MoneyInput.vue';
+import BankPicker from '@/components/ui/BankPicker.vue';
+import type { BankBrand } from '@/lib/constants/banks';
 
 const props = defineProps<{ editing?: CreditCard | null }>();
 const emit = defineEmits<{ saved: []; cancel: [] }>();
@@ -24,6 +26,7 @@ interface FormState {
   due_day: string;
   active: boolean;
   color: string;
+  icon: string | null;
 }
 const form = ref<FormState>({
   name: '',
@@ -32,6 +35,7 @@ const form = ref<FormState>({
   due_day: '5',
   active: true,
   color: '#0A84FF',
+  icon: null,
 });
 const errors = ref<Partial<Record<keyof CreditCardFormValues, string>>>({});
 
@@ -46,14 +50,24 @@ watch(
         due_day: String(c.due_day),
         active: c.active,
         color: c.color ?? '#0A84FF',
+        icon: c.icon ?? null,
       };
     } else {
-      form.value = { name: '', limit_amount: 0, closing_day: '25', due_day: '5', active: true, color: '#0A84FF' };
+      form.value = { name: '', limit_amount: 0, closing_day: '25', due_day: '5', active: true, color: '#0A84FF', icon: null };
     }
     errors.value = {};
   },
   { immediate: true },
 );
+
+/** Ao escolher um banco, sugere nome e cor de marca se ainda em branco/default. */
+function onPickBank(bank: BankBrand | null) {
+  if (!bank) return;
+  if (!form.value.name.trim()) form.value.name = bank.label;
+  if (bank.color && (!form.value.color || form.value.color === '#0A84FF')) {
+    form.value.color = bank.color;
+  }
+}
 
 async function onSubmit() {
   const parsed = creditCardSchema.safeParse(form.value);
@@ -69,7 +83,7 @@ async function onSubmit() {
       await store.update(props.editing.id, parsed.data);
       toast.success('Cartão atualizado.');
     } else {
-      await store.create({ ...parsed.data, color: parsed.data.color ?? null, icon: null });
+      await store.create({ ...parsed.data, color: parsed.data.color ?? null, icon: parsed.data.icon ?? null });
       toast.success('Cartão criado.');
     }
     emit('saved');
@@ -81,6 +95,11 @@ async function onSubmit() {
 
 <template>
   <form class="space-y-4" @submit.prevent="onSubmit">
+    <div class="space-y-2">
+      <Label>Banco</Label>
+      <BankPicker v-model="form.icon" @select="onPickBank" />
+    </div>
+
     <div class="space-y-1.5">
       <Label for="name">Nome</Label>
       <Input id="name" v-model="form.name" placeholder="Ex.: Nubank, Inter Gold" required />

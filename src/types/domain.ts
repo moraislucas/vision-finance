@@ -20,6 +20,8 @@ export interface Profile {
   name: string;
   email: string;
   avatar_url: string | null;
+  /** Token secreto pro atalho do iPhone (Quick Transaction). NULL = desligado. */
+  quick_token: UUID | null;
   created_at: ISODateTime;
 }
 
@@ -146,6 +148,8 @@ export interface Settings {
    * SEMPRE sobre dinheiro no fim do mês, além das metas.
    */
   monthly_savings_target: number | null;
+  /** Conta usada por padrão em lançamentos via atalho rápido (iPhone). */
+  default_account_id: UUID | null;
   budget_enabled: boolean;
   created_at: ISODateTime;
 }

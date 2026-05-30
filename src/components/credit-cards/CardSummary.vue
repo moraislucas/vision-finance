@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { CreditCard as CardIcon, Pencil, Trash2, Plus } from '@lucide/vue';
+import { Pencil, Trash2, Plus, Receipt } from '@lucide/vue';
 import { useDataStore } from '@/stores/data';
 import {
   getCardInvoice,
@@ -12,9 +12,10 @@ import type { CreditCard } from '@/types/domain';
 import Card from '@/components/ui/Card.vue';
 import Badge from '@/components/ui/Badge.vue';
 import IconButton from '@/components/ui/IconButton.vue';
+import BankLogo from '@/components/ui/BankLogo.vue';
 
 const props = defineProps<{ card: CreditCard }>();
-const emit = defineEmits<{ edit: []; remove: []; newPurchase: []; openDetail: [] }>();
+const emit = defineEmits<{ edit: []; remove: []; newPurchase: []; newInvoice: []; openDetail: [] }>();
 
 const data = useDataStore();
 
@@ -34,10 +35,8 @@ const usagePct = computed(() => {
     <button class="w-full p-4 text-left" type="button" @click="emit('openDetail')">
       <header class="flex items-start justify-between gap-3">
         <div class="min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="rounded-md p-1.5" :style="{ backgroundColor: `${card.color ?? '#0A84FF'}33`, color: card.color ?? '#0A84FF' }">
-              <CardIcon class="h-4 w-4" />
-            </span>
+          <div class="flex items-center gap-2.5">
+            <BankLogo :slug="card.icon" :name="card.name" :color="card.color" size="sm" />
             <h3 class="truncate text-base font-semibold">{{ card.name }}</h3>
             <Badge v-if="!card.active" size="sm">Inativo</Badge>
           </div>
@@ -80,7 +79,7 @@ const usagePct = computed(() => {
       </div>
     </button>
 
-    <div class="border-t border-border p-3">
+    <div class="grid grid-cols-2 gap-2 border-t border-border p-3">
       <button
         type="button"
         class="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm hover:bg-secondary/60"
@@ -88,6 +87,14 @@ const usagePct = computed(() => {
       >
         <Plus class="h-4 w-4" />
         Nova compra
+      </button>
+      <button
+        type="button"
+        class="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm hover:bg-secondary/60"
+        @click="emit('newInvoice')"
+      >
+        <Receipt class="h-4 w-4" />
+        Lançar fatura
       </button>
     </div>
   </Card>

@@ -29,10 +29,12 @@ const option = computed<EChartsOption>(() => ({
   tooltip: {
     trigger: 'axis',
     formatter: (params: unknown) => {
-      const arr = params as { axisValueLabel: string; data: number }[];
-      const p = arr[0];
+      const arr = Array.isArray(params) ? params : [params];
+      const p = arr[0] as { axisValueLabel?: string; name?: string; data?: number } | undefined;
+      if (!p || typeof p.data !== 'number') return '';
       const color = p.data < 0 ? C.destructive : C.success;
-      return `<b>${p.axisValueLabel}</b><br/><span style="color:${color}">${formatCurrency(p.data)}</span>`;
+      const label = p.axisValueLabel ?? p.name ?? '';
+      return `<b>${label}</b><br/><span style="color:${color}">${formatCurrency(p.data)}</span>`;
     },
     backgroundColor: C.card,
     borderColor: C.border,
@@ -97,5 +99,10 @@ const option = computed<EChartsOption>(() => ({
 </script>
 
 <template>
-  <VChart class="h-72 w-full" :option="option" autoresize />
+  <VChart
+    class="h-72 w-full"
+    :option="option"
+    :update-options="{ notMerge: true }"
+    autoresize
+  />
 </template>

@@ -72,7 +72,7 @@ const categoryOptions = computed(() => [
   { value: null as string | null, label: 'Sem categoria' },
   ...data.categories
     .filter((c) => c.type === 'expense')
-    .map((c) => ({ value: c.id, label: c.name })),
+    .map((c) => ({ value: c.id, label: `${c.icon ?? '🏷️'} ${c.name}` })),
 ]);
 
 async function onSubmit() {
