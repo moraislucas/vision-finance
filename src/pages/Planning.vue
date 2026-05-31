@@ -12,6 +12,7 @@ import { useDataStore } from '@/stores/data';
 import {
   getBudgetBreakdown,
   getProjection,
+  getCurrentBalance,
   resolvePaymentCategoryId,
   type ProjectionPoint,
 } from '@/lib/finance';
@@ -79,6 +80,22 @@ const projection = computed<ProjectionPoint[]>(() => {
 const firstNegative = computed(() =>
   projection.value.slice(1).find((p) => p.balance < 0),
 );
+
+// Âncora "Hoje" = saldo real atual, à frente da projeção mês-a-mês.
+// Assim o ponto mais à esquerda do gráfico bate com o saldo do Dashboard, e os
+// pontos seguintes ficam claramente rotulados como fim de cada mês.
+const chartPoints = computed<(ProjectionPoint & { label?: string })[]>(() => {
+  const b0 = getCurrentBalance(data.accounts, data.transactions);
+  return [
+    {
+      month: dayjs().format('YYYY-MM'),
+      balance: b0,
+      negative: b0 < 0,
+      label: 'Hoje',
+    },
+    ...projection.value,
+  ];
+});
 
 const rows = computed(() => {
   const base = [
@@ -222,7 +239,7 @@ function monthLabel(ym: string): string {
         </p>
       </div>
 
-      <LinhaProjecao :points="projection" />
+      <LinhaProjecao :points="chartPoints" />
     </Card>
 
     <!-- Visão mensal híbrida: Calendário | Planilha -->

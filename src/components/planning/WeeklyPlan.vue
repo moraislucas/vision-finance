@@ -221,8 +221,12 @@ function balanceTone(value: number): string {
                   <span v-if="!row.isFuture">{{ formatCurrency(row.spent) }}</span>
                   <span v-else class="text-muted-foreground/50">—</span>
                 </td>
-                <td class="px-3 py-2 text-right tabular-nums font-medium" :class="balanceTone(row.endBalance)">
-                  {{ formatCurrency(row.endBalance) }}
+                <td
+                  class="px-3 py-2 text-right tabular-nums font-medium"
+                  :class="balanceTone(row.realBalance ?? row.endBalance)"
+                >
+                  <span v-if="!row.isFuture">{{ formatCurrency(row.realBalance ?? row.endBalance) }}</span>
+                  <span v-else class="text-muted-foreground">~{{ formatCurrency(row.endBalance) }}</span>
                 </td>
               </tr>
             </tbody>

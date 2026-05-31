@@ -31,9 +31,9 @@ async function onLogout() {
 
 <template>
   <header
-    class="sticky top-0 z-20 h-14 lg:h-16 border-b border-border glass safe-area-top"
+    class="sticky top-0 z-20 border-b border-border glass safe-area-top"
   >
-    <div class="flex h-full items-center gap-3 px-4 md:px-6 lg:px-8">
+    <div class="flex h-14 lg:h-16 items-center gap-3 px-4 md:px-6 lg:px-8">
       <div class="lg:hidden">
         <Logo />
       </div>

@@ -60,6 +60,12 @@ export interface DailyLedgerRow {
   spent: number;
   /** Saldo ao FIM do dia (com toda a projeção aplicada). */
   endBalance: number;
+  /**
+   * Saldo REAL ao fim do dia — só conta movimentações de fato (passado/hoje),
+   * SEM reservar o budget do dia. Para "hoje" bate com `getCurrentBalance`.
+   * `null` no futuro (lá só existe a trajetória projetada em `endBalance`).
+   */
+  realBalance: number | null;
 }
 
 /** Resumo agregado de uma semana (Dom–Sáb) dentro do mês. */
@@ -141,6 +147,8 @@ export function getMonthDailyProjection(
 
   let runningBalance = balanceAtDate(data.accounts, data.transactions, dayBeforeMonth);
   const startingBalance = runningBalance;
+  // Trilha do saldo REAL (sem reservar budget) — para o passado/hoje.
+  let realRunning = startingBalance;
 
   // Orçamento diário (já desconta o `savingsBuffer` se passado em options).
   const dailyBudget = computeDailyBudgetFor(
@@ -231,6 +239,13 @@ export function getMonthDailyProjection(
       runningBalance + totalInflows - totalOutflows - projectedSpend,
     );
 
+    // Saldo real: só movimentações de fato; não reserva o budget. Futuro = null.
+    let realBalance: number | null = null;
+    if (!isFuture) {
+      realRunning = round2(realRunning + totalInflows - totalOutflows);
+      realBalance = realRunning;
+    }
+
     // Gasto realizado (passado/hoje) — money de fato saído em despesas variáveis.
     const spent = isFuture ? 0 : varRealized;
 
@@ -246,6 +261,7 @@ export function getMonthDailyProjection(
       budget: round2(dailyBudget),
       spent: round2(spent),
       endBalance: runningBalance,
+      realBalance,
     });
   }
 

@@ -6,6 +6,7 @@ import {
   getGoalMonthlyTarget,
   getGoalProgress,
   getGoalWeeklyTarget,
+  getGoalCompletionDate,
   getContributedThisMonth,
 } from '@/lib/finance';
 import { formatCurrency, formatPercent } from '@/lib/helpers/format';
@@ -28,6 +29,7 @@ const progress = computed(() => getGoalProgress(props.goal));
 const monthlyTarget = computed(() => getGoalMonthlyTarget(props.goal));
 const dailyTarget = computed(() => getGoalDailyTarget(props.goal));
 const weeklyTarget = computed(() => getGoalWeeklyTarget(props.goal));
+const completion = computed(() => getGoalCompletionDate(props.goal));
 const contributed = computed(() =>
   getContributedThisMonth(props.goal, data.goalContributions),
 );
@@ -47,11 +49,12 @@ const contributed = computed(() =>
             <ShieldCheck class="size-3" /> Emergência
           </Badge>
         </div>
-        <p v-if="goal.target_date" class="mt-0.5 text-xs text-muted-foreground">
-          Prazo: {{ goal.target_date }}
+        <p v-if="completion" class="mt-0.5 text-xs text-muted-foreground">
+          Conclusão prevista:
+          <span class="capitalize text-foreground">{{ completion.format('MMM/YYYY') }}</span>
         </p>
         <p v-else class="mt-0.5 text-xs text-muted-foreground">
-          Contribuição mensal fixa
+          {{ progress >= 1 ? 'Meta atingida 🎉' : 'Sem prazo definido' }}
         </p>
       </div>
       <div class="flex shrink-0 gap-1">
@@ -117,6 +120,12 @@ const contributed = computed(() =>
         {{ formatCurrency(monthlyTarget) }}
       </span>
       .
+    </p>
+
+    <p v-if="goal.active && dailyTarget > 0" class="text-[11px] text-muted-foreground">
+      Reduz seu Pode Gastar em
+      <span class="tabular-nums text-foreground">{{ formatCurrency(dailyTarget) }}</span>/dia
+      enquanto ativa.
     </p>
 
     <div class="flex gap-2">

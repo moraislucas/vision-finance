@@ -59,7 +59,7 @@ const option = computed<EChartsOption>(() => ({
       type: 'pie',
       radius: ['62%', '88%'],
       avoidLabelOverlap: false,
-      itemStyle: { borderRadius: 4, borderColor: 'oklch(0.185 0 0)', borderWidth: 2 },
+      itemStyle: { borderRadius: 4, borderColor: '#1c1c1e', borderWidth: 2 },
       label: { show: false },
       labelLine: { show: false },
       data: slices.value.map((s) => ({

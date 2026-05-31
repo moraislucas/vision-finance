@@ -22,6 +22,7 @@ import {
   today as todayHelper,
   type Dayjs,
 } from '@/lib/helpers/date';
+import type { Transaction } from '@/types/domain';
 import type { EngineData } from './types';
 import { getCurrentBalance, getReserved } from './balance';
 import { getRemainingIncome, getRemainingRecurringExpenses } from './recurring';
@@ -56,6 +57,27 @@ export interface BudgetBreakdown {
   monthlyBudget: number;
   weeklyBudget: number;
   dailyBudget: number;
+}
+
+/**
+ * Quanto de gasto VARIÁVEL (discricionário) já foi lançado numa data.
+ * Exclui despesas vinculadas a conta fixa (`recurring_expense_id`) e a compras
+ * de cartão (`credit_card_purchase_id`) — é a mesma definição usada na projeção
+ * diária. Base do "já gastei hoje" que esvazia o teto diário.
+ */
+export function getDiscretionarySpentOnDate(
+  transactions: Transaction[],
+  ref: Dayjs = todayHelper(),
+): number {
+  const refStr = ref.format('YYYY-MM-DD');
+  let sum = 0;
+  for (const tx of transactions) {
+    if (tx.type !== 'expense') continue;
+    if (tx.date !== refStr) continue;
+    if (tx.recurring_expense_id || tx.credit_card_purchase_id) continue;
+    sum += Number(tx.amount);
+  }
+  return round2(sum);
 }
 
 /** Or completo = contas fixas restantes + faturas a vencer não pagas. */

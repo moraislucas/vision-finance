@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { dayjs } from '@/lib/helpers/date';
-import { getMonthDailyProjection } from '@/lib/finance';
+import { getMonthDailyProjection, getCurrentBalance } from '@/lib/finance';
 import {
   emptyEngineData,
   makeAccount,
@@ -117,6 +117,34 @@ describe('projeção diária (calendário/extrato)', () => {
 
     const d25 = result.rows[24];
     expect(d25.inflows).toBe(5000);
+  });
+
+  it('realBalance: "hoje" bate com getCurrentBalance, futuro é null e endBalance é preservado', () => {
+    const data = {
+      ...emptyEngineData(),
+      accounts: [makeAccount({ id: 'a1', initial_balance: 2000, include_in_available: true })],
+      transactions: [
+        makeTransaction({ type: 'income', amount: 1000, date: '2025-06-05', account_id: 'a1' }),
+        makeTransaction({ type: 'expense', amount: 200, date: '2025-06-07', account_id: 'a1' }),
+      ],
+    };
+    const result = getMonthDailyProjection(data, TODAY, null, TODAY);
+    const realToday = getCurrentBalance(data.accounts, data.transactions, TODAY);
+
+    // Hoje (10/jun): realBalance = saldo real (2800), SEM reservar o budget.
+    const todayRow = result.rows[9];
+    expect(todayRow.isToday).toBe(true);
+    expect(todayRow.realBalance).toBe(2800);
+    expect(todayRow.realBalance).toBe(realToday);
+    // endBalance (trajetória) continua reservando o budget de hoje.
+    expect(todayRow.endBalance).toBeCloseTo(2800 - result.dailyBudget, 2);
+
+    // Passado: realBalance == endBalance (não há budget reservado).
+    expect(result.rows[6].realBalance).toBe(result.rows[6].endBalance);
+
+    // Futuro: realBalance é null (lá só existe a trajetória projetada).
+    expect(result.rows[10].isFuture).toBe(true);
+    expect(result.rows[10].realBalance).toBeNull();
   });
 
   it('navegação entre meses: mês futuro tem startingBalance baseado em hoje', () => {

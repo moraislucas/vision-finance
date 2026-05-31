@@ -32,7 +32,8 @@ interface DayCell {
   isPast?: boolean;
   isToday?: boolean;
   isFuture?: boolean;
-  endBalance?: number;
+  /** Saldo a exibir: real (passado/hoje) ou projetado (futuro). */
+  balance?: number;
   events?: CalendarEvent[];
 }
 
@@ -122,7 +123,7 @@ const cells = computed<DayCell[]>(() => {
       isPast: row.isPast,
       isToday: row.isToday,
       isFuture: row.isFuture,
-      endBalance: row.endBalance,
+      balance: row.realBalance ?? row.endBalance,
       events: eventsByDay.value.get(d) ?? [],
     });
   }
@@ -252,20 +253,21 @@ function compactBRL(value: number): string {
             </li>
           </ul>
 
-          <!-- Saldo do dia (pílula colorida) — no mobile, valor compacto -->
+          <!-- Saldo do dia (pílula colorida). Futuro = projetado (prefixo ~). -->
           <div
-            v-if="cell.endBalance !== undefined"
+            v-if="cell.balance !== undefined"
             :class="
               cn(
                 'mt-auto rounded text-center font-medium tabular-nums',
                 'text-[9px] px-1 py-0.5 md:text-[10.5px] md:px-1.5 md:py-1 md:rounded-md',
-                balanceTone(cell.endBalance),
+                balanceTone(cell.balance),
+                cell.isFuture && 'opacity-80',
               )
             "
           >
             <!-- Mobile: número curto. Desktop: formatCurrency completo. -->
-            <span class="md:hidden">{{ compactBRL(cell.endBalance) }}</span>
-            <span class="hidden md:inline">{{ formatCurrency(cell.endBalance) }}</span>
+            <span class="md:hidden">{{ (cell.isFuture ? '~' : '') + compactBRL(cell.balance ?? 0) }}</span>
+            <span class="hidden md:inline">{{ cell.isFuture ? '~' : '' }}{{ formatCurrency(cell.balance) }}</span>
           </div>
         </template>
       </div>

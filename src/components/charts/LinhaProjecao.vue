@@ -6,21 +6,26 @@ import type { ProjectionPoint } from '@/lib/finance';
 import { formatCurrency } from '@/lib/helpers/format';
 import { dayjs } from '@/lib/helpers/date';
 
-// Tokens (OKLCH) usados no chart — espelho parcial de src/style.css.
+// Cores do chart em HEX/RGBA — espelho dos tokens OKLCH de src/style.css.
+// ⚠️ NÃO usar oklch() aqui: o zrender (motor do ECharts) faz parsing/
+// interpolação própria das cores ao animar updates (ex.: trocar o filtro de
+// horizonte) e NÃO entende oklch → quebra "ao manipular os filtros". O canvas
+// renderiza oklch na 1ª pintura, por isso o bug só aparecia ao atualizar.
 const C = {
-  card: 'oklch(0.185 0 0)',
-  border: 'oklch(0.255 0 0)',
-  foreground: 'oklch(0.985 0 0)',
-  mutedForeground: 'oklch(0.66 0.005 270)',
-  primary: 'oklch(0.66 0.21 253)',
-  destructive: 'oklch(0.65 0.22 25)',
-  success: 'oklch(0.78 0.18 145)',
+  card: '#1c1c1e',
+  border: '#2c2c2e',
+  foreground: '#fafafa',
+  mutedForeground: '#9a9aa2',
+  primary: '#0a84ff',
+  destructive: '#ff453a',
+  success: '#30d158',
 };
 
-const props = defineProps<{ points: ProjectionPoint[] }>();
+/** Aceita um `label` opcional por ponto (ex.: a âncora "Hoje"). */
+const props = defineProps<{ points: (ProjectionPoint & { label?: string })[] }>();
 
 const labels = computed(() =>
-  props.points.map((p) => dayjs(`${p.month}-01`).format('MMM/YY')),
+  props.points.map((p) => p.label ?? dayjs(`${p.month}-01`).format('MMM/YY')),
 );
 const values = computed(() => props.points.map((p) => p.balance));
 const hasNegative = computed(() => props.points.some((p) => p.balance < 0));
@@ -45,7 +50,8 @@ const option = computed<EChartsOption>(() => ({
     type: 'category',
     data: labels.value,
     axisLine: { lineStyle: { color: C.border } },
-    axisLabel: { color: C.mutedForeground, fontSize: 11 },
+    // hideOverlap evita labels amontoados no mobile (até 13 pontos no view 12m).
+    axisLabel: { color: C.mutedForeground, fontSize: 11, hideOverlap: true },
   },
   yAxis: {
     type: 'value',
@@ -73,8 +79,8 @@ const option = computed<EChartsOption>(() => ({
           x2: 0,
           y2: 1,
           colorStops: [
-            { offset: 0, color: 'oklch(0.66 0.21 253 / 0.35)' },
-            { offset: 1, color: 'oklch(0.66 0.21 253 / 0.02)' },
+            { offset: 0, color: 'rgba(10,132,255,0.35)' },
+            { offset: 1, color: 'rgba(10,132,255,0.02)' },
           ],
         },
       },
@@ -88,7 +94,7 @@ const option = computed<EChartsOption>(() => ({
         ? {
             symbol: 'none',
             label: { show: false },
-            lineStyle: { color: 'oklch(0.32 0 0)', type: 'dashed' },
+            lineStyle: { color: '#3a3a3c', type: 'dashed' },
             data: [{ yAxis: 0 }],
           }
         : undefined,

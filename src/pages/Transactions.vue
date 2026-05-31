@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { SlidersHorizontal } from '@lucide/vue';
 import { useDataStore } from '@/stores/data';
 import { useTransactionStore } from '@/stores/transactions';
 import { useToast } from '@/composables/useToast';
@@ -69,6 +70,22 @@ const accountOptions = computed(() => [
 ]);
 
 const isEmpty = computed(() => data.transactions.length === 0);
+
+// Filtros em sheet no mobile: conta quantos estão ativos (busca à parte).
+const filtersOpen = ref(false);
+const activeFilterCount = computed(
+  () =>
+    [
+      store.filters.type !== 'all',
+      store.filters.categoryId !== 'all',
+      store.filters.accountId !== 'all',
+    ].filter(Boolean).length,
+);
+function clearFilters() {
+  store.filters.type = 'all';
+  store.filters.categoryId = 'all';
+  store.filters.accountId = 'all';
+}
 </script>
 
 <template>
@@ -83,8 +100,8 @@ const isEmpty = computed(() => data.transactions.length === 0);
       </template>
     </PageHeader>
 
-    <!-- Filtros -->
-    <Card padded>
+    <!-- Filtros (desktop): grid inline -->
+    <Card padded class="hidden md:block">
       <div class="grid gap-3 md:grid-cols-5">
         <div class="space-y-1.5 md:col-span-2">
           <Label for="search">Buscar</Label>
@@ -105,8 +122,33 @@ const isEmpty = computed(() => data.transactions.length === 0);
       </div>
     </Card>
 
+    <!-- Filtros (mobile): busca + botão que abre o sheet -->
+    <div class="flex gap-2 md:hidden">
+      <Input
+        v-model="store.filters.search"
+        placeholder="Buscar transação…"
+        class="flex-1"
+        aria-label="Buscar transação"
+      />
+      <Button
+        variant="outline"
+        class="relative h-11 shrink-0"
+        aria-label="Abrir filtros"
+        @click="filtersOpen = true"
+      >
+        <SlidersHorizontal />
+        Filtros
+        <span
+          v-if="activeFilterCount"
+          class="grid size-5 place-items-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground tabular-nums"
+        >
+          {{ activeFilterCount }}
+        </span>
+      </Button>
+    </div>
+
     <!-- Totais -->
-    <div class="mt-3 grid gap-3 md:gap-4 md:grid-cols-4">
+    <div class="mt-3 grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4">
       <Card padded>
         <p class="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80">
           Lançamentos
@@ -165,6 +207,37 @@ const isEmpty = computed(() => data.transactions.length === 0);
     </div>
 
     <FloatingAddButton class="md:hidden" @click="openCreate" />
+
+    <!-- Sheet de filtros (mobile) -->
+    <Sheet :open="filtersOpen" title="Filtros" @update:open="filtersOpen = $event">
+      <div class="space-y-4">
+        <div class="space-y-1.5">
+          <Label>Tipo</Label>
+          <Select v-model="store.filters.type" :options="typeOptions" />
+        </div>
+        <div class="space-y-1.5">
+          <Label>Categoria</Label>
+          <Select v-model="store.filters.categoryId" :options="categoryOptions" />
+        </div>
+        <div class="space-y-1.5">
+          <Label>Conta</Label>
+          <Select v-model="store.filters.accountId" :options="accountOptions" />
+        </div>
+        <div class="flex gap-2 pt-2">
+          <Button
+            variant="outline"
+            class="flex-1"
+            :disabled="!activeFilterCount"
+            @click="clearFilters"
+          >
+            Limpar
+          </Button>
+          <Button class="flex-1" @click="filtersOpen = false">
+            Ver {{ store.totals.count }} resultado{{ store.totals.count === 1 ? '' : 's' }}
+          </Button>
+        </div>
+      </div>
+    </Sheet>
 
     <Sheet
       :open="sheetOpen"

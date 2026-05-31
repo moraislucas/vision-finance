@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useGoalStore } from '@/stores/goals';
 import { useToast } from '@/composables/useToast';
 import { goalSchema, type GoalFormValues } from '@/lib/schemas/goal';
+import { dayjs, monthsUntil, today } from '@/lib/helpers/date';
+import { formatCurrency } from '@/lib/helpers/format';
 import type { Goal } from '@/types/domain';
 import Button from '@/components/ui/Button.vue';
 import Input from '@/components/ui/Input.vue';
@@ -40,6 +42,18 @@ const form = ref<FormState>({
   color: '#0A84FF',
 });
 const errors = ref<Partial<Record<keyof GoalFormValues, string>>>({});
+
+// Simulador inline: quanto precisa guardar por mês para bater o prazo.
+const previewMonthly = computed(() => {
+  if (form.value.mode !== 'deadline') return null;
+  if (!form.value.target_date || form.value.target_amount <= 0) return null;
+  const target = dayjs(form.value.target_date);
+  if (!target.isValid() || !target.isAfter(today())) return null;
+  const months = monthsUntil(today(), target);
+  const current = props.editing ? Number(props.editing.current_amount) : 0;
+  const remaining = Math.max(0, form.value.target_amount - current);
+  return Math.round((remaining / months) * 100) / 100;
+});
 
 watch(
   () => props.editing,
@@ -149,6 +163,14 @@ async function onSubmit() {
     <div v-if="form.mode === 'deadline'" class="space-y-1.5">
       <Label for="target_date">Data alvo</Label>
       <Input id="target_date" v-model="form.target_date" type="date" required />
+      <p
+        v-if="previewMonthly !== null"
+        class="rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs leading-relaxed text-primary"
+      >
+        Você precisa guardar
+        <span class="font-semibold tabular-nums">{{ formatCurrency(previewMonthly) }}/mês</span>
+        pra chegar lá.
+      </p>
     </div>
     <div v-else class="space-y-1.5">
       <Label for="monthly_contribution">Contribuição mensal</Label>

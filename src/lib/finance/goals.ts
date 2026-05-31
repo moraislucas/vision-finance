@@ -28,6 +28,27 @@ export function getGoalMonthlyTarget(goal: Goal, ref: Dayjs = todayHelper()): nu
   return 0;
 }
 
+/**
+ * Data prevista de conclusão da meta.
+ *  - com `target_date`: é a própria data alvo.
+ *  - sem prazo, com `monthly_contribution`: estima `ceil(restante / mensal)` meses.
+ *  - já atingida, ou sem ritmo de contribuição: null.
+ */
+export function getGoalCompletionDate(
+  goal: Goal,
+  ref: Dayjs = todayHelper(),
+): Dayjs | null {
+  if (!goal.active) return null;
+  const remaining = Number(goal.target_amount) - Number(goal.current_amount);
+  if (remaining <= 0) return null;
+  if (goal.target_date) return dayjs(goal.target_date);
+  if (goal.monthly_contribution && Number(goal.monthly_contribution) > 0) {
+    const months = Math.ceil(remaining / Number(goal.monthly_contribution));
+    return ref.add(months, 'month');
+  }
+  return null;
+}
+
 /** Alvo diário e semanal (seção 9.3). */
 export function getGoalDailyTarget(goal: Goal, ref: Dayjs = todayHelper()): number {
   return round2(getGoalMonthlyTarget(goal, ref) / ref.daysInMonth());

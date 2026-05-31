@@ -11,12 +11,15 @@
  * Tudo deriva de getters da engine — esta página não recalcula nada (princípio 4).
  */
 import { computed, ref } from 'vue';
+import { RouterLink } from 'vue-router';
 import {
   Wallet,
   TrendingUp,
   ChartLine,
   PiggyBank,
   AlertTriangle,
+  AlertCircle,
+  ShieldCheck,
   Sparkles,
   Info,
 } from '@lucide/vue';
@@ -27,6 +30,7 @@ import {
   getProjectedMonthEndBalance,
   getReserved,
   getInsights,
+  getFinancialScore,
   resolvePaymentCategoryId,
 } from '@/lib/finance';
 
@@ -79,6 +83,37 @@ const insightStyle = (s: string) =>
 const projected = computed(() =>
   getProjectedMonthEndBalance(engineData.value, resolvePaymentCategoryId(data.categories)),
 );
+
+// Herói: status financeiro (semáforo) derivado do Score 0–100.
+const score = computed(() =>
+  getFinancialScore(engineData.value, resolvePaymentCategoryId(data.categories)),
+);
+const status = computed(() => {
+  const t = score.value.total;
+  if (t >= 70)
+    return {
+      label: 'Dentro do plano',
+      icon: ShieldCheck,
+      box: 'border-success/30 bg-success/10',
+      iconWrap: 'bg-success/15 text-success',
+      num: 'text-success',
+    };
+  if (t >= 40)
+    return {
+      label: 'Atenção',
+      icon: AlertTriangle,
+      box: 'border-warning/30 bg-warning/10',
+      iconWrap: 'bg-warning/15 text-warning',
+      num: 'text-warning',
+    };
+  return {
+    label: 'Risco',
+    icon: AlertCircle,
+    box: 'border-destructive/30 bg-destructive/10',
+    iconWrap: 'bg-destructive/15 text-destructive',
+    num: 'text-destructive',
+  };
+});
 </script>
 
 <template>
@@ -90,6 +125,30 @@ const projected = computed(() =>
         </Button>
       </template>
     </PageHeader>
+
+    <!-- 0. Herói: status financeiro num relance -->
+    <RouterLink
+      :to="{ name: 'planning' }"
+      :class="['mb-3 md:mb-4 flex items-center gap-3 rounded-2xl border p-3 md:p-4 transition-colors', status.box]"
+    >
+      <span :class="['grid size-9 shrink-0 place-items-center rounded-xl', status.iconWrap]">
+        <component :is="status.icon" class="size-5" />
+      </span>
+      <div class="min-w-0">
+        <p class="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80 font-medium">
+          Status financeiro
+        </p>
+        <p class="text-base font-semibold leading-tight">{{ status.label }}</p>
+      </div>
+      <div class="ml-auto text-right leading-none">
+        <span :class="['block text-2xl font-semibold tabular-nums', status.num]">
+          {{ score.total }}
+        </span>
+        <span class="block text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80">
+          de 100
+        </span>
+      </div>
+    </RouterLink>
 
     <!-- 1. 4 MetricCards (2x2 no mobile, 4 col no lg) -->
     <section class="grid grid-cols-2 gap-2.5 md:gap-4 lg:grid-cols-4">

@@ -2,15 +2,25 @@
 /**
  * Pode Gastar — Card neutro com toggle dia/semana/mês.
  *
- * Lê `monthly_savings_target` das settings para descontar a margem de poupança
- * automática antes de calcular o budget. Mostra a margem explicitamente.
+ * - Modo "dia": além do teto, mostra "já gastei hoje" + sobra (loop diário).
+ * - `variant="detailed"` (Planejamento): destaque de poupança + simulador de
+ *   margem (slider que recalcula o teto ao vivo).
+ * - `variant="compact"` (Dashboard): link "ver de onde vem" para a decomposição.
  */
 import { computed, ref } from 'vue';
+import { RouterLink } from 'vue-router';
 import { useDataStore } from '@/stores/data';
-import { resolvePaymentCategoryId, getBudgetBreakdown } from '@/lib/finance';
+import { useSettingsStore } from '@/stores/settings';
+import { useToast } from '@/composables/useToast';
+import {
+  resolvePaymentCategoryId,
+  getBudgetBreakdown,
+  getDiscretionarySpentOnDate,
+} from '@/lib/finance';
 import { formatCurrency } from '@/lib/helpers/format';
-import { TrendingUp, AlertTriangle, PiggyBank } from '@lucide/vue';
+import { TrendingUp, AlertTriangle, PiggyBank, ArrowRight } from '@lucide/vue';
 import Card from '@/components/ui/Card.vue';
+import Button from '@/components/ui/Button.vue';
 import SegmentedControl from '@/components/ui/SegmentedControl.vue';
 
 const props = withDefaults(defineProps<{ variant?: 'compact' | 'detailed' }>(), {
@@ -18,10 +28,16 @@ const props = withDefaults(defineProps<{ variant?: 'compact' | 'detailed' }>(), 
 });
 
 const data = useDataStore();
+const settingsStore = useSettingsStore();
+const toast = useToast();
 type Mode = 'day' | 'week' | 'month';
 const mode = ref<Mode>('day');
 
 const savingsBuffer = computed(() => data.settings?.monthly_savings_target ?? 0);
+
+// Simulação de margem (só na versão detalhada). null = usa o valor salvo.
+const simBuffer = ref<number | null>(null);
+const effectiveBuffer = computed(() => simBuffer.value ?? savingsBuffer.value);
 
 const breakdown = computed(() => {
   const paymentCategoryId = resolvePaymentCategoryId(data.categories);
@@ -39,7 +55,7 @@ const breakdown = computed(() => {
     },
     paymentCategoryId,
     undefined,
-    { savingsBuffer: savingsBuffer.value },
+    { savingsBuffer: effectiveBuffer.value },
   );
 });
 
@@ -65,6 +81,35 @@ const footer = computed(() => {
 });
 
 const isDetailed = computed(() => props.variant === 'detailed');
+
+// === Loop diário: "já gastei hoje" =========================================
+const spentToday = computed(() => getDiscretionarySpentOnDate(data.transactions));
+const tetoHoje = computed(() => breakdown.value.dailyBudget);
+const sobraHoje = computed(() => Math.max(0, breakdown.value.dailyBudget - spentToday.value));
+const spentOver = computed(() => spentToday.value > breakdown.value.dailyBudget);
+const spentProgress = computed(() => {
+  const teto = breakdown.value.dailyBudget;
+  if (teto <= 0) return spentToday.value > 0 ? 1 : 0;
+  return Math.max(0, Math.min(1, spentToday.value / teto));
+});
+
+// === Simulador de margem (detailed) ========================================
+const sliderMax = computed(() => Math.max(100, Math.ceil(breakdown.value.freeBalanceMonth)));
+const isDirty = computed(
+  () =>
+    simBuffer.value !== null &&
+    Math.round(simBuffer.value) !== Math.round(savingsBuffer.value),
+);
+async function saveSimBuffer() {
+  if (simBuffer.value === null) return;
+  try {
+    await settingsStore.update({ monthly_savings_target: simBuffer.value });
+    toast.success('Margem de poupança atualizada.');
+    simBuffer.value = null; // volta a refletir o valor salvo
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Erro ao salvar margem.');
+  }
+}
 
 const tabs: { value: Mode; label: string }[] = [
   { value: 'day', label: 'Dia' },
@@ -94,6 +139,39 @@ const tabs: { value: Mode; label: string }[] = [
       <span class="text-4xl md:text-5xl font-semibold tracking-tight tabular-nums">
         {{ formatCurrency(currentValue) }}
       </span>
+    </div>
+
+    <!-- Loop diário: já gastei hoje × teto (só no modo dia) -->
+    <div v-if="mode === 'day'" class="mt-4">
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-muted-foreground">Já gastei hoje</span>
+        <span
+          class="tabular-nums"
+          :class="spentOver ? 'font-medium text-destructive' : 'text-foreground'"
+        >
+          {{ formatCurrency(spentToday) }}
+        </span>
+      </div>
+      <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-secondary/60">
+        <div
+          class="h-full rounded-full transition-[width]"
+          :class="spentOver ? 'bg-destructive' : 'bg-primary'"
+          :style="{ width: `${spentProgress * 100}%` }"
+        />
+      </div>
+      <p class="mt-1 text-[11px] text-muted-foreground">
+        <template v-if="spentOver">
+          Estourou o teto de hoje em
+          <span class="font-medium text-destructive tabular-nums">
+            {{ formatCurrency(spentToday - tetoHoje) }}</span
+          >.
+        </template>
+        <template v-else>
+          Sobram
+          <span class="font-medium text-foreground tabular-nums">{{ formatCurrency(sobraHoje) }}</span>
+          pra hoje.
+        </template>
+      </p>
     </div>
 
     <!-- Alerta: mês apertado (não cobre margem de poupança) -->
@@ -138,9 +216,12 @@ const tabs: { value: Mode; label: string }[] = [
       </p>
     </div>
 
-    <!-- Decomposição rápida -->
-    <div class="mt-6 grid grid-cols-3 gap-3 border-t border-border/60 pt-4 text-xs">
-      <div>
+    <!-- Decomposição rápida. "Saldo hoje" só no detalhado (no Dashboard já há o KPI Saldo). -->
+    <div
+      class="mt-6 grid gap-3 border-t border-border/60 pt-4 text-xs"
+      :class="isDetailed ? 'grid-cols-3' : 'grid-cols-2'"
+    >
+      <div v-if="isDetailed">
         <div
           class="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80 font-medium"
         >
@@ -189,6 +270,56 @@ const tabs: { value: Mode; label: string }[] = [
     </div>
 
     <p class="mt-3 text-[11px] text-muted-foreground">{{ footer }}</p>
+
+    <!-- Link para a decomposição (só no Dashboard; no Planejamento ela já está ao lado) -->
+    <RouterLink
+      v-if="!isDetailed"
+      :to="{ name: 'planning' }"
+      class="mt-2 inline-flex w-fit items-center gap-1 text-xs text-primary hover:underline"
+    >
+      Ver de onde vem esse número
+      <ArrowRight class="size-3" />
+    </RouterLink>
+
+    <!-- Simulador de margem de poupança (só no detalhado / Planejamento) -->
+    <div v-if="isDetailed" class="mt-4 border-t border-border/60 pt-4">
+      <div class="flex items-center justify-between gap-2">
+        <p
+          class="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80 font-medium"
+        >
+          <PiggyBank class="size-3 text-primary" />
+          Simular margem
+        </p>
+        <span class="text-xs tabular-nums text-muted-foreground">
+          {{ formatCurrency(effectiveBuffer) }}/mês
+        </span>
+      </div>
+      <input
+        type="range"
+        min="0"
+        :max="sliderMax"
+        step="50"
+        :value="effectiveBuffer"
+        class="mt-2 w-full accent-[oklch(var(--primary))]"
+        aria-label="Margem de poupança mensal"
+        @input="simBuffer = Number(($event.target as HTMLInputElement).value)"
+      />
+      <div class="mt-1 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+        <span class="flex-1">
+          Guardando isso, dá pra gastar
+          <span class="font-medium text-foreground tabular-nums">{{ formatCurrency(breakdown.dailyBudget) }}</span>/dia.
+        </span>
+        <Button
+          v-if="isDirty"
+          size="sm"
+          class="shrink-0"
+          :loading="settingsStore.saving"
+          @click="saveSimBuffer"
+        >
+          Salvar
+        </Button>
+      </div>
+    </div>
 
     <!-- Slot opcional (Dashboard mescla os Insights aqui pra aproveitar o espaço) -->
     <div v-if="$slots.extra" class="mt-4 border-t border-border/60 pt-4">
